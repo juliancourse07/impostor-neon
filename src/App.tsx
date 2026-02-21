@@ -15,7 +15,10 @@ type WordPackKey =
   | "viajes"
   | "deportes"
   | "musica"
-  | "cine_series";
+  | "cine_series"
+  | "mono_bandido";
+
+type BandidoIntensity = "suave" | "medio" | "salvaje";
 
 function shuffle<T>(arr: T[]) {
   const a = [...arr];
@@ -214,7 +217,6 @@ const WORD_PACKS: Record<WordPackKey, { label: string; words: string[] }> = {
     ],
   },
 
-  // ---- FUN PACKS (20-35) ----
   fiesta: {
     label: "Fiesta",
     words: [
@@ -393,6 +395,29 @@ const WORD_PACKS: Record<WordPackKey, { label: string; words: string[] }> = {
       "ESCENA POST-CREDITOS",
     ],
   },
+
+  // Mono Bandido uses "words" as concepts to describe (party-safe)
+  mono_bandido: {
+    label: "Mono Bandido (Party)",
+    words: [
+      "BAILE PROHIBIDO",
+      "VERDAD INCÓMODA",
+      "RISAS NERVIOSAS",
+      "AMIGO TOXICO",
+      "SUEÑO RARO",
+      "ANÉCDOTA PENOSA",
+      "APODO SECRETO",
+      "BEBIDA FAVORITA",
+      "CRUSH IMPOSIBLE",
+      "PLAN IMPROVISADO",
+      "CHAT FILTRADO",
+      "CITA DESASTRE",
+      "FIESTA INOLVIDABLE",
+      "DRAMA",
+      "AMOR ODIO",
+      "EL GRUPO DE WHATSAPP",
+    ],
+  },
 };
 
 const PACK_KEYS: WordPackKey[] = [
@@ -408,7 +433,52 @@ const PACK_KEYS: WordPackKey[] = [
   "deportes",
   "musica",
   "cine_series",
+  "mono_bandido",
 ];
+
+type BandidoEvent = { title: string; rule: string };
+type BandidoPunishment = { title: string; text: string };
+
+const BANDIDO_EVENTS: BandidoEvent[] = [
+  { title: "Regla Prohibida", rule: "No puedes decir: 'yo', 'sí', 'no'." },
+  { title: "Ronda Susurro", rule: "Todos hablan en voz bajita (si gritas, quedas sospechoso)." },
+  { title: "Una Palabra", rule: "En tu turno solo puedes decir 1 palabra. El grupo interpreta." },
+  { title: "Pista Doble", rule: "Cada quien da 2 pistas: 1 real y 1 falsa (sin decir cuál)." },
+  { title: "Modo Actor", rule: "Describe como si estuvieras actuando en una novela." },
+  { title: "Modo Noticiero", rule: "Describe como presentador de noticias serias." },
+  { title: "Cambio de Silla", rule: "Antes de hablar, cambien de puesto 1 vez (caos controlado)." },
+];
+
+const PUNISHMENTS_SUAVE: BandidoPunishment[] = [
+  { title: "Acento", text: "Habla con acento inventado hasta la próxima ronda." },
+  { title: "Historia Flash", text: "Cuenta una mini-anécdota (10s) sin reírte." },
+  { title: "Pose", text: "Haz una pose épica 5s. Foto opcional." },
+  { title: "Regla Personal", text: "En la próxima ronda no puedes usar la palabra 'literal'." },
+];
+
+const PUNISHMENTS_MEDIO: BandidoPunishment[] = [
+  { title: "Karaoke 10s", text: "Canta 10 segundos de cualquier canción." },
+  { title: "Freestyle", text: "Improvisa 8 segundos de rap sobre 'trabajo y café'." },
+  { title: "Imitación", text: "Imita a alguien del grupo 10 segundos (sin ofender)." },
+  { title: "Verdad", text: "Responde: ¿Cuál fue tu peor oso social? (respuesta corta)." },
+];
+
+const PUNISHMENTS_SALVAJE: BandidoPunishment[] = [
+  { title: "No te rías", text: "Reto: 20 segundos sin reír. Si fallas, repites." },
+  { title: "Modo Dramático", text: "Di una frase dramática como villano (15s)." },
+  { title: "Roast suave", text: "Di un piropo + roast suave a alguien (sin insultos)." },
+  { title: "Mini-Show", text: "Haz un mini show: baile 10s o actuación 10s." },
+];
+
+function pickPunishment(intensity: BandidoIntensity) {
+  const list =
+    intensity === "suave"
+      ? PUNISHMENTS_SUAVE
+      : intensity === "medio"
+        ? PUNISHMENTS_MEDIO
+        : PUNISHMENTS_SALVAJE;
+  return pickRandom(list);
+}
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
@@ -416,20 +486,28 @@ export default function App() {
   // Setup
   const [players, setPlayers] = useState<string[]>([""]);
   const [impostorsCount, setImpostorsCount] = useState(1);
-
-  // Pack selection
   const [pack, setPack] = useState<WordPackKey>("lugares");
+
+  // NEW: toggles
+  const [eventsEnabled, setEventsEnabled] = useState(true);
+  const [monoBandidoEnabled, setMonoBandidoEnabled] = useState(false);
+  const [bandidoIntensity, setBandidoIntensity] = useState<BandidoIntensity>("medio");
 
   // Keep focus in inputs while typing
   const playerInputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
-  // Game state (persists across rounds)
+  // Game state
   const [alive, setAlive] = useState<boolean[]>([]);
   const [impostors, setImpostors] = useState<Set<number>>(new Set());
   const [round, setRound] = useState(1);
 
   // Round data
   const [secretWord, setSecretWord] = useState<string>("");
+
+  // Bandido round spice
+  const [roundEvent, setRoundEvent] = useState<BandidoEvent | null>(null);
+  const [roundPunishment, setRoundPunishment] = useState<BandidoPunishment | null>(null);
+  const [punishmentRerolled, setPunishmentRerolled] = useState(false);
 
   // Reveal flow
   const [revealOrder, setRevealOrder] = useState<number[]>([]);
@@ -472,11 +550,10 @@ export default function App() {
     return c;
   }, [alive, impostors]);
 
-  const aliveCrewCount = useMemo(() => {
-    return aliveCount - aliveImpostorsCount;
-  }, [aliveCount, aliveImpostorsCount]);
+  const aliveCrewCount = useMemo(() => aliveCount - aliveImpostorsCount, [aliveCount, aliveImpostorsCount]);
 
-  const packInfo = WORD_PACKS[pack];
+  const effectivePack: WordPackKey = monoBandidoEnabled ? "mono_bandido" : pack;
+  const packInfo = WORD_PACKS[effectivePack];
   const packCount = packInfo.words.length;
 
   function setUpNewGame() {
@@ -495,7 +572,7 @@ export default function App() {
   }
 
   function startRoundWithState(aliveState: boolean[]) {
-    const word = pickRandom(WORD_PACKS[pack].words);
+    const word = pickRandom(WORD_PACKS[effectivePack].words);
     setSecretWord(word);
 
     const order = cleanPlayers
@@ -509,6 +586,19 @@ export default function App() {
     setSelectedSuspect(null);
     setEjected(null);
     setLastEjectedWasImpostor(null);
+
+    // bandido spice
+    if (monoBandidoEnabled && eventsEnabled) setRoundEvent(pickRandom(BANDIDO_EVENTS));
+    else if (eventsEnabled) setRoundEvent(pickRandom(BANDIDO_EVENTS));
+    else setRoundEvent(null);
+
+    if (monoBandidoEnabled) {
+      setRoundPunishment(pickPunishment(bandidoIntensity));
+      setPunishmentRerolled(false);
+    } else {
+      setRoundPunishment(null);
+      setPunishmentRerolled(false);
+    }
 
     setTimeLeft(discussionDuration);
     setTimerRunning(false);
@@ -529,10 +619,18 @@ export default function App() {
     setImpostorsCount(1);
     setPack("lugares");
 
+    setEventsEnabled(true);
+    setMonoBandidoEnabled(false);
+    setBandidoIntensity("medio");
+
     setAlive([]);
     setImpostors(new Set());
     setRound(1);
     setSecretWord("");
+
+    setRoundEvent(null);
+    setRoundPunishment(null);
+    setPunishmentRerolled(false);
 
     setRevealOrder([]);
     setRevealPos(0);
@@ -591,7 +689,7 @@ export default function App() {
     setScreen("result");
   }
 
-  // Timer tick effect (only active on play screen and when running)
+  // Timer tick effect
   useEffect(() => {
     if (screen !== "play") return;
     if (!timerRunning) return;
@@ -700,7 +798,7 @@ export default function App() {
             <Button
               onClick={() =>
                 alert(
-                  "Flujo:\n1) Configura jugadores\n2) Elige categoría de palabras\n3) Reparto\n4) Discusión con temporizador\n5) Votación\n6) Rondas hasta que alguien gane",
+                  "Flujo:\n1) Configura jugadores\n2) Elige categoría (o Mono Bandido)\n3) Reparto\n4) Discusión con temporizador\n5) Votación\n6) Resultado (y castigo si aplica)\n7) Siguiente ronda",
                 )
               }
             >
@@ -778,18 +876,75 @@ export default function App() {
             </Button>
           </div>
 
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: "block", marginBottom: 8, opacity: 0.9 }}>Modos</label>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <label style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={eventsEnabled}
+                  onChange={(e) => setEventsEnabled(e.target.checked)}
+                />
+                Eventos aleatorios
+              </label>
+
+              <label style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={monoBandidoEnabled}
+                  onChange={(e) => setMonoBandidoEnabled(e.target.checked)}
+                />
+                Mono Bandido (Party)
+              </label>
+            </div>
+
+            {monoBandidoEnabled && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ opacity: 0.9, marginBottom: 6 }}>Intensidad:</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {(["suave", "medio", "salvaje"] as const).map((lvl) => {
+                    const selected = bandidoIntensity === lvl;
+                    return (
+                      <button
+                        key={lvl}
+                        type="button"
+                        onClick={() => setBandidoIntensity(lvl)}
+                        style={{
+                          padding: "10px 12px",
+                          borderRadius: 12,
+                          border: selected
+                            ? "1px solid rgba(255,255,255,0.38)"
+                            : "1px solid rgba(255,255,255,0.14)",
+                          background: selected ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.25)",
+                          color: "inherit",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {lvl.toUpperCase()}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p style={{ margin: "8px 0 0", opacity: 0.65, fontSize: 13 }}>
+                  Mono Bandido añade evento + castigo (party-safe) al resultado.
+                </p>
+              </div>
+            )}
+          </div>
+
           <label style={{ display: "block", marginBottom: 8, opacity: 0.9 }}>
             Categoría de palabras
           </label>
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-            {PACK_KEYS.map((k) => {
+            {PACK_KEYS.filter((k) => k !== "mono_bandido").map((k) => {
               const selected = pack === k;
               return (
                 <button
                   key={k}
                   type="button"
                   onClick={() => setPack(k)}
+                  disabled={monoBandidoEnabled}
                   style={{
                     padding: "10px 12px",
                     borderRadius: 12,
@@ -798,7 +953,8 @@ export default function App() {
                       : "1px solid rgba(255,255,255,0.14)",
                     background: selected ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.25)",
                     color: "inherit",
-                    cursor: "pointer",
+                    cursor: monoBandidoEnabled ? "not-allowed" : "pointer",
+                    opacity: monoBandidoEnabled ? 0.5 : 1,
                   }}
                 >
                   {WORD_PACKS[k].label}
@@ -808,14 +964,16 @@ export default function App() {
 
             <button
               type="button"
-              onClick={() => setPack(pickRandom(PACK_KEYS))}
+              onClick={() => setPack(pickRandom(PACK_KEYS.filter((k) => k !== "mono_bandido")))}
+              disabled={monoBandidoEnabled}
               style={{
                 padding: "10px 12px",
                 borderRadius: 12,
                 border: "1px solid rgba(255,255,255,0.14)",
                 background: "rgba(0,0,0,0.25)",
                 color: "inherit",
-                cursor: "pointer",
+                cursor: monoBandidoEnabled ? "not-allowed" : "pointer",
+                opacity: monoBandidoEnabled ? 0.5 : 1,
               }}
               title="Elegir una categoría al azar"
             >
@@ -883,6 +1041,23 @@ export default function App() {
           <p style={{ margin: "0 0 10px", opacity: 0.85 }}>
             Categoría: <strong>{packInfo.label}</strong>
           </p>
+
+          {roundEvent && (
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 14,
+                border: "1px solid rgba(255,255,255,0.12)",
+                background: "rgba(0,0,0,0.25)",
+                marginBottom: 12,
+              }}
+            >
+              <div style={{ opacity: 0.8, fontSize: 13 }}>Evento:</div>
+              <div style={{ fontWeight: 800 }}>{roundEvent.title}</div>
+              <div style={{ opacity: 0.85 }}>{roundEvent.rule}</div>
+            </div>
+          )}
+
           <p style={{ margin: "0 0 16px", opacity: 0.85 }}>
             Vivos: <strong>{aliveCount}</strong> (Tripulación {aliveCrewCount} / Impostores{" "}
             {aliveImpostorsCount})
@@ -971,6 +1146,22 @@ export default function App() {
           <div style={{ marginBottom: 10, opacity: 0.85 }}>
             Categoría: <strong>{packInfo.label}</strong>
           </div>
+
+          {roundEvent && (
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 14,
+                border: "1px solid rgba(255,255,255,0.12)",
+                background: "rgba(0,0,0,0.25)",
+                marginBottom: 12,
+              }}
+            >
+              <div style={{ opacity: 0.8, fontSize: 13 }}>Evento:</div>
+              <div style={{ fontWeight: 800 }}>{roundEvent.title}</div>
+              <div style={{ opacity: 0.85 }}>{roundEvent.rule}</div>
+            </div>
+          )}
 
           <div
             style={{
@@ -1111,6 +1302,38 @@ export default function App() {
                 {lastEjectedWasImpostor ? "Era IMPOSTOR." : "No era impostor."}
               </p>
             </>
+          )}
+
+          {monoBandidoEnabled && roundPunishment && (
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 14,
+                border: "1px solid rgba(255,255,255,0.12)",
+                background: "rgba(0,0,0,0.25)",
+                marginBottom: 14,
+              }}
+            >
+              <div style={{ opacity: 0.8, fontSize: 13 }}>Mono Bandido — Castigo:</div>
+              <div style={{ fontWeight: 900, fontSize: 18 }}>{roundPunishment.title}</div>
+              <div style={{ opacity: 0.9 }}>{roundPunishment.text}</div>
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
+                <Button
+                  onClick={() => {
+                    if (punishmentRerolled) return;
+                    setRoundPunishment(pickPunishment(bandidoIntensity));
+                    setPunishmentRerolled(true);
+                  }}
+                  disabled={punishmentRerolled}
+                  title="Solo 1 vez por ronda"
+                >
+                  Cambiar castigo (1x)
+                </Button>
+              </div>
+
+              <GhostHint>Regla: si a alguien no le gusta, se cambia sin discusión.</GhostHint>
+            </div>
           )}
 
           <p style={{ margin: "0 0 14px", opacity: 0.85 }}>
