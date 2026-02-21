@@ -462,7 +462,6 @@ const PUNISHMENTS_MEDIO: BandidoPunishment[] = [
   { title: "Verdad", text: "Responde: ¿Cuál fue tu peor oso social? (respuesta corta)." },
 ];
 
-// UPDATED: more intense, party-safe, "perreo permitido"
 const PUNISHMENTS_SALVAJE: BandidoPunishment[] = [
   { title: "BAILE 15s", text: "Baila 15s. (Perreo permitido si el grupo quiere)." },
   { title: "KARAOKE 15s", text: "Canta 15 segundos como si estuvieras en un concierto." },
@@ -499,8 +498,17 @@ export default function App() {
   const [monoBandidoEnabled, setMonoBandidoEnabled] = useState(false);
   const [bandidoIntensity, setBandidoIntensity] = useState<BandidoIntensity>("medio");
 
-  // NEW: If game ends, show result first (so penalty shows), then allow "Ver ganador"
+  // If game ends, show result first (so penalty shows), then allow "Ver ganador"
   const [pendingGameOver, setPendingGameOver] = useState<"tripulacion" | "impostores" | null>(null);
+
+  // Voting (per-player)
+  const [voteCounts, setVoteCounts] = useState<number[]>([]);
+  const [firstVoterFor, setFirstVoterFor] = useState<Record<number, number>>({});
+  const [voterTurn, setVoterTurn] = useState(0);
+
+  // Penalty payer (Mono Bandido)
+  const [penaltyPayer, setPenaltyPayer] = useState<number | null>(null);
+  const [penaltyReason, setPenaltyReason] = useState<string>("");
 
   // Keep focus in inputs while typing
   const playerInputRefs = useRef<Array<HTMLInputElement | null>>([]);
@@ -523,8 +531,7 @@ export default function App() {
   const [revealPos, setRevealPos] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
 
-  // Vote & result
-  const [selectedSuspect, setSelectedSuspect] = useState<number | null>(null);
+  // Result
   const [ejected, setEjected] = useState<number | null>(null);
   const [lastEjectedWasImpostor, setLastEjectedWasImpostor] = useState<boolean | null>(null);
 
@@ -591,7 +598,6 @@ export default function App() {
     setRevealPos(0);
     setIsRevealed(false);
 
-    setSelectedSuspect(null);
     setEjected(null);
     setLastEjectedWasImpostor(null);
 
@@ -606,6 +612,13 @@ export default function App() {
       setRoundPunishment(null);
       setPunishmentRerolled(false);
     }
+
+    // reset voting + penalty
+    setVoteCounts(cleanPlayers.map(() => 0));
+    setFirstVoterFor({});
+    setVoterTurn(0);
+    setPenaltyPayer(null);
+    setPenaltyReason("");
 
     setTimeLeft(discussionDuration);
     setTimerRunning(false);
@@ -631,6 +644,12 @@ export default function App() {
     setBandidoIntensity("medio");
     setPendingGameOver(null);
 
+    setVoteCounts([]);
+    setFirstVoterFor({});
+    setVoterTurn(0);
+    setPenaltyPayer(null);
+    setPenaltyReason("");
+
     setAlive([]);
     setImpostors(new Set());
     setRound(1);
@@ -644,7 +663,6 @@ export default function App() {
     setRevealPos(0);
     setIsRevealed(false);
 
-    setSelectedSuspect(null);
     setEjected(null);
     setLastEjectedWasImpostor(null);
 
@@ -658,24 +676,63 @@ export default function App() {
   }
 
   function goToVote() {
-    setSelectedSuspect(null);
     setTimerRunning(false);
+    setVoterTurn(0);
+    if (voteCounts.length !== cleanPlayers.length) setVoteCounts(cleanPlayers.map(() => 0));
     setScreen("vote");
   }
 
-  // FIXED: In Mono Bandido we ALWAYS go to "result" first (to show penalty),
-  // then allow going to "gameover" via a button if the game ended.
-  function confirmVote() {
-    if (selectedSuspect === null) return;
+  function castVoteFor(targetIdx: number) {
+    const aliveVoters = cleanPlayers.map((_, i) => i).filter((i) => alive[i]);
+    const currentVoter = aliveVoters[voterTurn];
+    if (currentVoter === undefined) return;
 
-    const idx = selectedSuspect;
-    const wasImpostor = impostors.has(idx);
+    setFirstVoterFor((prev) => {
+      if (prev[targetIdx] !== undefined) return prev;
+      return { ...prev, [targetIdx]: currentVoter };
+    });
 
-    setEjected(idx);
+    setVoteCounts((prev) => {
+      const next = prev.length ? [...prev] : cleanPlayers.map(() => 0);
+      next[targetIdx] = (next[targetIdx] ?? 0) + 1;
+      return next;
+    });
+
+    setVoterTurn((t) => Math.min(aliveVoters.length, t + 1));
+  }
+
+  function finalizeVotingAndEject() {
+    const aliveIdxs = cleanPlayers.map((_, i) => i).filter((i) => alive[i]);
+    if (aliveIdxs.length === 0) return;
+
+    let maxVotes = -1;
+    for (const i of aliveIdxs) maxVotes = Math.max(maxVotes, voteCounts[i] ?? 0);
+
+    const top = aliveIdxs.filter((i) => (voteCounts[i] ?? 0) === maxVotes);
+    const ejectedIdx = maxVotes <= 0 ? pickRandom(aliveIdxs) : pickRandom(top);
+
+    const wasImpostor = impostors.has(ejectedIdx);
+
+    setEjected(ejectedIdx);
     setLastEjectedWasImpostor(wasImpostor);
 
+    // decide who pays in Mono Bandido
+    if (monoBandidoEnabled) {
+      if (wasImpostor) {
+        setPenaltyPayer(ejectedIdx);
+        setPenaltyReason("Era el impostor.");
+      } else {
+        const payer = firstVoterFor[ejectedIdx];
+        setPenaltyPayer(payer ?? null);
+        setPenaltyReason("Votaron a un inocente. Paga el primero que lo señaló.");
+      }
+    } else {
+      setPenaltyPayer(null);
+      setPenaltyReason("");
+    }
+
     const nextAlive = [...alive];
-    nextAlive[idx] = false;
+    nextAlive[ejectedIdx] = false;
     setAlive(nextAlive);
 
     const nextAliveCount = countAlive(nextAlive);
@@ -813,7 +870,7 @@ export default function App() {
             <Button
               onClick={() =>
                 alert(
-                  "Flujo:\n1) Configura jugadores\n2) Elige categoría (o Mono Bandido)\n3) Reparto\n4) Discusión con temporizador\n5) Votación\n6) Resultado (y penitencia si aplica)\n7) Siguiente ronda",
+                  "Flujo:\n1) Configura jugadores\n2) Elige categoría (o Mono Bandido)\n3) Reparto\n4) Discusión con temporizador\n5) Votación por turnos\n6) Resultado + penitencia\n7) Siguiente ronda",
                 )
               }
             >
@@ -941,8 +998,8 @@ export default function App() {
                   })}
                 </div>
                 <p style={{ margin: "8px 0 0", opacity: 0.65, fontSize: 13 }}>
-                  Mono Bandido añade evento + penitencia (party-safe) al resultado. En este modo,
-                  siempre verás el resultado antes del ganador.
+                  En Mono Bandido: si atrapan al impostor paga él. Si sacan a un inocente, paga el
+                  primero que lo señaló.
                 </p>
               </div>
             )}
@@ -1274,52 +1331,83 @@ export default function App() {
 
       {screen === "vote" && (
         <Card>
-          <h2 style={{ margin: "0 0 8px" }}>Votación (abierta)</h2>
-          <p style={{ margin: "0 0 14px", opacity: 0.85 }}>
-            Elijan a quién expulsar (solo jugadores vivos).
+          <h2 style={{ margin: "0 0 8px" }}>Votación</h2>
+          <p style={{ margin: "0 0 12px", opacity: 0.85 }}>
+            Votan por turnos. Pásense el celular.
           </p>
 
-          <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
-            {alivePlayersList
-              .filter((p) => p.alive)
-              .map((p) => {
-                const selected = selectedSuspect === p.i;
-                return (
-                  <button
-                    key={p.name + p.i}
-                    type="button"
-                    onClick={() => setSelectedSuspect(p.i)}
-                    style={{
-                      textAlign: "left",
-                      padding: "12px 14px",
-                      borderRadius: 14,
-                      border: selected
-                        ? "1px solid rgba(255,255,255,0.38)"
-                        : "1px solid rgba(255,255,255,0.14)",
-                      background: selected ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.25)",
-                      color: "inherit",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {p.name}
-                    {selected ? "  ✓" : ""}
-                  </button>
-                );
-              })}
-          </div>
+          {(() => {
+            const aliveVoters = cleanPlayers.map((_, i) => i).filter((i) => alive[i]);
+            const currentVoter = aliveVoters[voterTurn];
+            const votingDone = voterTurn >= aliveVoters.length;
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Button onClick={() => setScreen("play")}>Volver a discusión</Button>
-            <Button onClick={confirmVote} disabled={selectedSuspect === null}>
-              Confirmar expulsión
-            </Button>
-          </div>
+            return (
+              <>
+                <div style={{ marginBottom: 12, opacity: 0.9 }}>
+                  {votingDone ? (
+                    <strong>Listo: ya votaron todos.</strong>
+                  ) : (
+                    <>
+                      Turno de: <strong>{cleanPlayers[currentVoter]}</strong>
+                    </>
+                  )}
+                </div>
+
+                <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
+                  {alivePlayersList
+                    .filter((p) => p.alive)
+                    .map((p) => {
+                      const votes = voteCounts[p.i] ?? 0;
+
+                      return (
+                        <button
+                          key={p.name + p.i}
+                          type="button"
+                          disabled={votingDone}
+                          onClick={() => castVoteFor(p.i)}
+                          style={{
+                            textAlign: "left",
+                            padding: "12px 14px",
+                            borderRadius: 14,
+                            border: "1px solid rgba(255,255,255,0.14)",
+                            background: "rgba(0,0,0,0.25)",
+                            color: "inherit",
+                            cursor: votingDone ? "not-allowed" : "pointer",
+                            opacity: votingDone ? 0.65 : 1,
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            alignItems: "center",
+                          }}
+                        >
+                          <span>{p.name}</span>
+                          <span style={{ opacity: 0.8, fontVariantNumeric: "tabular-nums" }}>
+                            {votes} voto{votes === 1 ? "" : "s"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                </div>
+
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <Button onClick={() => setScreen("play")}>Volver a discusión</Button>
+                  <Button onClick={finalizeVotingAndEject} disabled={!votingDone}>
+                    Finalizar votación
+                  </Button>
+                </div>
+
+                <GhostHint>
+                  Cuando toca un nombre, registra el voto del turno actual automáticamente.
+                </GhostHint>
+              </>
+            );
+          })()}
         </Card>
       )}
 
       {screen === "result" && (
         <Card>
-          <h2 style={{ margin: "0 0 8px" }}>Resultado de votación</h2>
+          <h2 style={{ margin: "0 0 8px" }}>Resultado</h2>
 
           {ejected !== null && (
             <>
@@ -1347,8 +1435,9 @@ export default function App() {
               <div style={{ marginTop: 6, marginBottom: 10 }}>
                 <div style={{ opacity: 0.75, fontSize: 13 }}>PAGA:</div>
                 <div style={{ fontSize: 22, fontWeight: 900 }}>
-                  {ejected !== null ? cleanPlayers[ejected] : "—"}
+                  {penaltyPayer !== null ? cleanPlayers[penaltyPayer] : "—"}
                 </div>
+                <div style={{ marginTop: 6, opacity: 0.85 }}>{penaltyReason}</div>
               </div>
 
               <div style={{ opacity: 0.75, fontSize: 13 }}>RETO:</div>
@@ -1374,8 +1463,8 @@ export default function App() {
           )}
 
           <p style={{ margin: "0 0 14px", opacity: 0.85 }}>
-            Quedan vivos: <strong>{countAlive(alive)}</strong> (Tripulación {aliveCrewCount} /
-            Impostores {aliveImpostorsCount})
+            Vivos: <strong>{countAlive(alive)}</strong> (Tripulación {aliveCrewCount} / Impostores{" "}
+            {aliveImpostorsCount})
           </p>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
