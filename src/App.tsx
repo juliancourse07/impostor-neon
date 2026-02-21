@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import "./App.css";
 
-type Screen = "home" | "setup" | "reveal" | "play";
+type Screen = "home" | "setup" | "reveal" | "play" | "vote" | "result";
 
 function shuffle<T>(arr: T[]) {
   const a = [...arr];
@@ -34,6 +34,10 @@ export default function App() {
   const [revealIndex, setRevealIndex] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
 
+  // Vote & result
+  const [selectedSuspect, setSelectedSuspect] = useState<number | null>(null);
+  const [ejected, setEjected] = useState<number | null>(null);
+
   const cleanPlayers = useMemo(
     () => players.map((p) => p.trim()).filter(Boolean),
     [players],
@@ -57,7 +61,7 @@ export default function App() {
     "RESTAURANTE",
   ];
 
-  function newGame() {
+  function startRound() {
     const p = cleanPlayers;
     const word = pickRandom(wordBank);
 
@@ -66,10 +70,31 @@ export default function App() {
     setSecretWord(word);
     setImpostors(new Set(idxs));
 
-    // start reveal
+    // reset reveal
     setRevealIndex(0);
     setIsRevealed(false);
+
+    // reset vote/result
+    setSelectedSuspect(null);
+    setEjected(null);
+
     setScreen("reveal");
+  }
+
+  function goToVote() {
+    setSelectedSuspect(null);
+    setScreen("vote");
+  }
+
+  function confirmVote() {
+    if (selectedSuspect === null) return;
+    setEjected(selectedSuspect);
+    setScreen("result");
+  }
+
+  function playAgainSamePlayers() {
+    // keep same players & impostor count; just re-roll word + impostors
+    startRound();
   }
 
   function resetAll() {
@@ -80,7 +105,16 @@ export default function App() {
     setImpostors(new Set());
     setRevealIndex(0);
     setIsRevealed(false);
+    setSelectedSuspect(null);
+    setEjected(null);
   }
+
+  const outcome = useMemo(() => {
+    if (ejected === null) return null;
+    const ejectedWasImpostor = impostors.has(ejected);
+    // Simple rule: if ejected is impostor => crew wins, else impostors win
+    return ejectedWasImpostor ? "tripulacion" : "impostores";
+  }, [ejected, impostors]);
 
   // ---------- UI helpers ----------
   const Card = ({ children }: { children: React.ReactNode }) => (
@@ -113,10 +147,12 @@ export default function App() {
     />
   );
 
+  const GhostHint = ({ children }: { children: React.ReactNode }) => (
+    <p style={{ marginTop: 12, opacity: 0.6, fontSize: 13 }}>{children}</p>
+  );
+
   return (
-    <div
-      style={{ minHeight: "100vh", padding: 22, display: "grid", placeItems: "center" }}
-    >
+    <div style={{ minHeight: "100vh", padding: 22, display: "grid", placeItems: "center" }}>
       {screen === "home" && (
         <Card>
           <h1 style={{ fontSize: 44, margin: "0 0 6px" }}>impostor-neon</h1>
@@ -132,7 +168,7 @@ export default function App() {
             <Button
               onClick={() =>
                 alert(
-                  "1) Agreguen jugadores\n2) Iniciar reparto\n3) Pasen el teléfono: cada jugador revela su rol\n4) Empieza la ronda",
+                  "1) Agreguen jugadores\n2) Iniciar reparto\n3) Pasen el teléfono: cada jugador revela su rol\n4) Discusión\n5) Votación abierta\n6) Resultado",
                 )
               }
             >
@@ -162,8 +198,6 @@ export default function App() {
                     const next = [...players];
                     next[i] = e.target.value;
                     setPlayers(next);
-
-                    // Mantener foco en el mismo input (evita que se "deseleccione")
                     queueMicrotask(() => playerInputRefs.current[i]?.focus());
                   }}
                   placeholder={`Jugador ${i + 1}`}
@@ -192,11 +226,7 @@ export default function App() {
             <Button type="button" onClick={() => setPlayers((p) => [...p, ""])}>
               + Agregar jugador
             </Button>
-            <Button
-              type="button"
-              onClick={() => setPlayers(["", "", ""])}
-              title="Reinicia la lista a 3 jugadores vacíos"
-            >
+            <Button type="button" onClick={() => setPlayers(["", "", ""])}>
               Plantilla 3
             </Button>
           </div>
@@ -225,7 +255,7 @@ export default function App() {
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <Button onClick={() => setScreen("home")}>Volver</Button>
-            <Button onClick={newGame} disabled={!canStart}>
+            <Button onClick={startRound} disabled={!canStart}>
               Iniciar reparto (pasar el teléfono)
             </Button>
           </div>
@@ -279,7 +309,6 @@ export default function App() {
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <Button
               onClick={() => {
-                // next player
                 if (revealIndex + 1 >= cleanPlayers.length) {
                   setScreen("play");
                 } else {
@@ -288,12 +317,11 @@ export default function App() {
                 }
               }}
             >
-              {revealIndex + 1 >= cleanPlayers.length ? "Empezar ronda" : "Siguiente jugador"}
+              {revealIndex + 1 >= cleanPlayers.length ? "Empezar discusión" : "Siguiente jugador"}
             </Button>
 
             <Button
               onClick={() => {
-                // safety: hide before going back
                 setIsRevealed(false);
                 setScreen("setup");
               }}
@@ -302,17 +330,15 @@ export default function App() {
             </Button>
           </div>
 
-          <p style={{ marginTop: 12, opacity: 0.6, fontSize: 13 }}>
-            Consejo: no mires la pantalla cuando se lo pasas a otra persona.
-          </p>
+          <GhostHint>Consejo: no mires la pantalla cuando se lo pasas a otra persona.</GhostHint>
         </Card>
       )}
 
       {screen === "play" && (
         <Card>
-          <h2 style={{ margin: "0 0 8px" }}>Ronda en curso</h2>
+          <h2 style={{ margin: "0 0 8px" }}>Discusión</h2>
           <p style={{ margin: "0 0 14px", opacity: 0.85 }}>
-            Hablen por turnos describiendo. Luego voten quién es el impostor.
+            Hablen por turnos describiendo. Cuando estén listos, vayan a votación.
           </p>
 
           <details style={{ marginBottom: 14 }}>
@@ -325,8 +351,114 @@ export default function App() {
           </details>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Button onClick={goToVote}>Ir a votación</Button>
             <Button onClick={() => setScreen("setup")}>Nueva ronda (reconfigurar)</Button>
             <Button onClick={resetAll}>Salir</Button>
+          </div>
+
+          <GhostHint>
+            (Luego podemos agregar temporizador y botón “Revelar palabra” para el final.)
+          </GhostHint>
+        </Card>
+      )}
+
+      {screen === "vote" && (
+        <Card>
+          <h2 style={{ margin: "0 0 8px" }}>Votación (abierta)</h2>
+          <p style={{ margin: "0 0 14px", opacity: 0.85 }}>
+            Elijan a quién expulsar. Luego confirmen el voto.
+          </p>
+
+          <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
+            {cleanPlayers.map((p, i) => {
+              const selected = selectedSuspect === i;
+              return (
+                <button
+                  key={p + i}
+                  type="button"
+                  onClick={() => setSelectedSuspect(i)}
+                  style={{
+                    textAlign: "left",
+                    padding: "12px 14px",
+                    borderRadius: 14,
+                    border: selected
+                      ? "1px solid rgba(255,255,255,0.38)"
+                      : "1px solid rgba(255,255,255,0.14)",
+                    background: selected ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.25)",
+                    color: "inherit",
+                    cursor: "pointer",
+                  }}
+                >
+                  {p}
+                  {selected ? "  ✓" : ""}
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Button onClick={() => setScreen("play")}>Volver a discusión</Button>
+            <Button onClick={confirmVote} disabled={selectedSuspect === null}>
+              Confirmar expulsión
+            </Button>
+          </div>
+
+          <GhostHint>Esto es votación abierta: todos ven la pantalla.</GhostHint>
+        </Card>
+      )}
+
+      {screen === "result" && (
+        <Card>
+          <h2 style={{ margin: "0 0 8px" }}>Resultado</h2>
+
+          {ejected !== null && (
+            <>
+              <p style={{ margin: "0 0 10px", opacity: 0.9 }}>
+                Expulsado: <strong>{cleanPlayers[ejected]}</strong>
+              </p>
+
+              <p style={{ margin: "0 0 14px", opacity: 0.85 }}>
+                {impostors.has(ejected)
+                  ? "Era IMPOSTOR."
+                  : "No era impostor."}
+              </p>
+            </>
+          )}
+
+          <details style={{ marginBottom: 14 }}>
+            <summary style={{ cursor: "pointer" }}>Revelar impostores</summary>
+            <ul>
+              {cleanPlayers.map((p, i) => (impostors.has(i) ? <li key={p + i}>{p}</li> : null))}
+            </ul>
+          </details>
+
+          <div
+            style={{
+              padding: 12,
+              borderRadius: 14,
+              border: "1px solid rgba(255,255,255,0.12)",
+              background: "rgba(0,0,0,0.25)",
+              marginBottom: 14,
+            }}
+          >
+            <div style={{ opacity: 0.8, fontSize: 13 }}>Ganador (regla simple):</div>
+            <div style={{ fontSize: 22, fontWeight: 800 }}>
+              {outcome === "tripulacion"
+                ? "TRIPULACIÓN"
+                : outcome === "impostores"
+                  ? "IMPOSTORES"
+                  : "-"}
+            </div>
+            <div style={{ opacity: 0.65, fontSize: 13, marginTop: 6 }}>
+              Regla actual: si expulsan a un impostor gana la tripulación, si no, ganan los
+              impostores. (Luego la hacemos más pro.)
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Button onClick={playAgainSamePlayers}>Jugar otra (mismos jugadores)</Button>
+            <Button onClick={() => setScreen("setup")}>Cambiar jugadores</Button>
+            <Button onClick={resetAll}>Home</Button>
           </div>
         </Card>
       )}
