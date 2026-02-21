@@ -56,12 +56,43 @@ async function playAlarm() {
   };
 
   // 3 beeps escalating
-  beep(now + 0.00, 880, 0.18);
+  beep(now + 0.0, 880, 0.18);
   beep(now + 0.25, 988, 0.18);
-  beep(now + 0.50, 1108, 0.22);
+  beep(now + 0.5, 1108, 0.22);
 
   // close context a bit later
   setTimeout(() => ctx.close().catch(() => {}), 1200);
+}
+
+// NEW: tick for the last 10 seconds
+async function playTick() {
+  const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+  if (!AudioCtx) return;
+
+  const ctx = new AudioCtx();
+  const now = ctx.currentTime;
+
+  const master = ctx.createGain();
+  master.gain.value = 0.03;
+  master.connect(ctx.destination);
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  osc.type = "square";
+  osc.frequency.value = 1200;
+
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(1, now + 0.005);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+
+  osc.connect(gain);
+  gain.connect(master);
+
+  osc.start(now);
+  osc.stop(now + 0.07);
+
+  setTimeout(() => ctx.close().catch(() => {}), 200);
 }
 
 export default function App() {
@@ -103,6 +134,9 @@ export default function App() {
   const [timeLeft, setTimeLeft] = useState<number>(90);
   const [timerRunning, setTimerRunning] = useState(false);
   const alarmedRef = useRef(false);
+
+  // NEW: avoid double tick on initial render, and ensure one tick per second
+  const lastTickedRef = useRef<number | null>(null);
 
   const cleanPlayers = useMemo(
     () => players.map((p) => p.trim()).filter(Boolean),
@@ -174,6 +208,7 @@ export default function App() {
     setTimeLeft(discussionDuration);
     setTimerRunning(false);
     alarmedRef.current = false;
+    lastTickedRef.current = null;
 
     setScreen("reveal");
   }
@@ -207,6 +242,7 @@ export default function App() {
     setTimeLeft(90);
     setTimerRunning(false);
     alarmedRef.current = false;
+    lastTickedRef.current = null;
   }
 
   function goToVote() {
@@ -261,6 +297,26 @@ export default function App() {
     return () => window.clearInterval(id);
   }, [screen, timerRunning]);
 
+  // NEW: Tick in last 10 seconds (10..1), only when timer is running and on play screen
+  useEffect(() => {
+    if (screen !== "play") return;
+    if (!timerRunning) return;
+
+    if (timeLeft <= 10 && timeLeft >= 1) {
+      // ensure one tick per second value
+      if (lastTickedRef.current !== timeLeft) {
+        lastTickedRef.current = timeLeft;
+
+        playTick().catch(() => {});
+        try {
+          navigator.vibrate?.(20);
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, [screen, timerRunning, timeLeft]);
+
   // Alarm effect when time reaches 0
   useEffect(() => {
     if (screen !== "play") return;
@@ -270,14 +326,12 @@ export default function App() {
     alarmedRef.current = true;
     setTimerRunning(false);
 
-    // vibration (mobile)
     try {
       navigator.vibrate?.([120, 80, 120, 80, 240]);
     } catch {
       // ignore
     }
 
-    // sound
     playAlarm().catch(() => {});
   }, [screen, timeLeft]);
 
@@ -425,7 +479,7 @@ export default function App() {
             Temporizador de discusión
           </label>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-            {DURATION_OPTIONS.map((sec) => {
+            {([30, 60, 90, 120, 180] as const).map((sec) => {
               const selected = discussionDuration === sec;
               return (
                 <button
@@ -436,6 +490,7 @@ export default function App() {
                     setTimeLeft(sec);
                     setTimerRunning(false);
                     alarmedRef.current = false;
+                    lastTickedRef.current = null;
                   }}
                   style={{
                     padding: "10px 12px",
@@ -528,8 +583,7 @@ export default function App() {
                   onClick={() => {
                     if (revealPos + 1 >= revealOrder.length) {
                       setScreen("play");
-                      // auto-start timer on entering discussion
-                      setTimerRunning(true);
+                      setTimerRunning(true); // auto-start timer on entering discussion
                     } else {
                       setRevealPos((p) => p + 1);
                       setIsRevealed(false);
@@ -580,13 +634,14 @@ export default function App() {
 
               <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                 <Button onClick={() => setTimerRunning((r) => !r)}>
-                  {timerRunning ? "Pausar" : timeLeft === 0 ? "Reanudar" : "Reanudar"}
+                  {timerRunning ? "Pausar" : "Reanudar"}
                 </Button>
                 <Button
                   onClick={() => {
                     setTimeLeft(discussionDuration);
                     setTimerRunning(false);
                     alarmedRef.current = false;
+                    lastTickedRef.current = null;
                   }}
                 >
                   Reiniciar
@@ -614,9 +669,7 @@ export default function App() {
               />
             </div>
 
-            <GhostHint>
-              Cuando llegue a 0 suena alarma y vibra (si el dispositivo lo permite).
-            </GhostHint>
+            <GhostHint>Últimos 10s hacen tick + vibración cortica.</GhostHint>
           </div>
 
           <p style={{ margin: "0 0 14px", opacity: 0.85 }}>
@@ -711,7 +764,7 @@ export default function App() {
             <Button onClick={resetAll}>Salir</Button>
           </div>
 
-          <GhostHint>La palabra cambia cada ronda.</GhostHint>
+          <p style={{ marginTop: 12, opacity: 0.6, fontSize: 13 }}>La palabra cambia cada ronda.</p>
         </Card>
       )}
 
