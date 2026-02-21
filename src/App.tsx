@@ -1,33 +1,322 @@
+import { useMemo, useState } from "react";
 import "./App.css";
 
+type Screen = "home" | "setup" | "reveal" | "play";
+
+function shuffle<T>(arr: T[]) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function pickRandom<T>(arr: T[]) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
 export default function App() {
-  return (
+  const [screen, setScreen] = useState<Screen>("home");
+
+  // Setup
+  const [players, setPlayers] = useState<string[]>([""]);
+  const [impostorsCount, setImpostorsCount] = useState(1);
+
+  // Round data
+  const [secretWord, setSecretWord] = useState<string>("");
+  const [impostors, setImpostors] = useState<Set<number>>(new Set());
+
+  // Reveal flow
+  const [revealIndex, setRevealIndex] = useState(0);
+  const [isRevealed, setIsRevealed] = useState(false);
+
+  const cleanPlayers = useMemo(
+    () => players.map((p) => p.trim()).filter(Boolean),
+    [players],
+  );
+
+  const canStart =
+    cleanPlayers.length >= 3 && impostorsCount >= 1 && impostorsCount < cleanPlayers.length;
+
+  const wordBank = [
+    "PIZZA",
+    "HOSPITAL",
+    "PLAYA",
+    "ESCUELA",
+    "AEROPUERTO",
+    "CINE",
+    "BIBLIOTECA",
+    "GIMNASIO",
+    "SUPERMERCADO",
+    "RESTAURANTE",
+  ];
+
+  function newGame() {
+    const p = cleanPlayers;
+    const word = pickRandom(wordBank);
+
+    // choose impostors
+    const idxs = shuffle(p.map((_, i) => i)).slice(0, impostorsCount);
+    setSecretWord(word);
+    setImpostors(new Set(idxs));
+
+    // start reveal
+    setRevealIndex(0);
+    setIsRevealed(false);
+    setScreen("reveal");
+  }
+
+  function resetAll() {
+    setScreen("home");
+    setPlayers([""]);
+    setImpostorsCount(1);
+    setSecretWord("");
+    setImpostors(new Set());
+    setRevealIndex(0);
+    setIsRevealed(false);
+  }
+
+  // ---------- UI helpers ----------
+  const Card = ({ children }: { children: React.ReactNode }) => (
     <div
       style={{
-        minHeight: "100vh",
-        padding: 24,
-        display: "grid",
-        placeItems: "center",
+        width: "100%",
+        maxWidth: 720,
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: 16,
+        padding: 18,
       }}
     >
-      <div style={{ width: "100%", maxWidth: 900 }}>
-        <h1 style={{ fontSize: 44, margin: "0 0 8px" }}>impostor-neon</h1>
+      {children}
+    </div>
+  );
 
-        <p style={{ opacity: 0.85, margin: "0 0 24px" }}>
-          Juego party tipo impostor (PWA) en español, pasando el teléfono, estilo
-          neón.
-        </p>
+  const Button = (props: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button
+      {...props}
+      style={{
+        padding: "10px 14px",
+        borderRadius: 12,
+        border: "1px solid rgba(255,255,255,0.14)",
+        background: "rgba(0,0,0,0.35)",
+        color: "inherit",
+        cursor: props.disabled ? "not-allowed" : "pointer",
+        opacity: props.disabled ? 0.5 : 1,
+      }}
+    />
+  );
 
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <button type="button">Crear partida</button>
-          <button type="button">Unirme</button>
-          <button type="button">Cómo jugar</button>
-        </div>
+  return (
+    <div style={{ minHeight: "100vh", padding: 22, display: "grid", placeItems: "center" }}>
+      {screen === "home" && (
+        <Card>
+          <h1 style={{ fontSize: 44, margin: "0 0 6px" }}>impostor-neon</h1>
+          <p style={{ opacity: 0.85, margin: "0 0 18px" }}>
+            Modo 1 dispositivo: se pasan el teléfono para revelar su rol.
+          </p>
 
-        <p style={{ opacity: 0.65, marginTop: 18, fontSize: 14 }}>
-          Tip: para publicar cambios en tu web, haz <code>npm run deploy</code>.
-        </p>
-      </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Button onClick={() => setScreen("setup")}>Crear partida</Button>
+            <Button disabled title="En modo 1 dispositivo no hace falta.">
+              Unirme
+            </Button>
+            <Button
+              onClick={() =>
+                alert(
+                  "1) Agreguen jugadores\n2) Iniciar reparto\n3) Pasen el teléfono: cada jugador revela su rol\n4) Empieza la ronda",
+                )
+              }
+            >
+              Cómo jugar
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {screen === "setup" && (
+        <Card>
+          <h2 style={{ margin: "0 0 10px" }}>Configurar partida</h2>
+
+          <label style={{ display: "block", marginBottom: 8, opacity: 0.9 }}>
+            Jugadores (mínimo 3)
+          </label>
+
+          <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
+            {players.map((value, i) => (
+              <div key={i} style={{ display: "flex", gap: 8 }}>
+                <input
+                  value={value}
+                  onChange={(e) => {
+                    const next = [...players];
+                    next[i] = e.target.value;
+                    setPlayers(next);
+                  }}
+                  placeholder={`Jugador ${i + 1}`}
+                  style={{
+                    flex: 1,
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(255,255,255,0.14)",
+                    background: "rgba(0,0,0,0.25)",
+                    color: "inherit",
+                  }}
+                />
+                <Button
+                  type="button"
+                  onClick={() => setPlayers((p) => p.filter((_, idx) => idx !== i))}
+                  disabled={players.length <= 1}
+                  title="Eliminar"
+                >
+                  ✕
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+            <Button type="button" onClick={() => setPlayers((p) => [...p, ""])}>
+              + Agregar jugador
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setPlayers(["", "", ""])}
+              title="Reinicia la lista a 3 jugadores vacíos"
+            >
+              Plantilla 3
+            </Button>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <span style={{ opacity: 0.9 }}>Impostores:</span>
+            <Button type="button" onClick={() => setImpostorsCount((n) => Math.max(1, n - 1))}>
+              -
+            </Button>
+            <strong>{impostorsCount}</strong>
+            <Button
+              type="button"
+              onClick={() => setImpostorsCount((n) => Math.min(cleanPlayers.length - 1, n + 1))}
+              disabled={cleanPlayers.length <= 1}
+            >
+              +
+            </Button>
+          </div>
+
+          {!canStart && (
+            <p style={{ margin: "0 0 12px", color: "#ffd6a5", opacity: 0.95 }}>
+              Agrega al menos 3 nombres y asegúrate de que los impostores sean menos que los
+              jugadores.
+            </p>
+          )}
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Button onClick={() => setScreen("home")}>Volver</Button>
+            <Button onClick={newGame} disabled={!canStart}>
+              Iniciar reparto (pasar el teléfono)
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {screen === "reveal" && (
+        <Card>
+          <h2 style={{ margin: "0 0 8px" }}>Revelar rol</h2>
+          <p style={{ margin: "0 0 16px", opacity: 0.85 }}>
+            Jugador <strong>{revealIndex + 1}</strong> de <strong>{cleanPlayers.length}</strong>
+          </p>
+
+          <div
+            style={{
+              padding: 16,
+              borderRadius: 16,
+              border: "1px solid rgba(255,255,255,0.12)",
+              background: "rgba(0,0,0,0.25)",
+              marginBottom: 14,
+            }}
+          >
+            <div style={{ fontSize: 18, opacity: 0.9, marginBottom: 8 }}>
+              Pásale el teléfono a:
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 700 }}>{cleanPlayers[revealIndex]}</div>
+
+            <div style={{ height: 12 }} />
+
+            {!isRevealed ? (
+              <Button onClick={() => setIsRevealed(true)}>Tocar para ver mi rol</Button>
+            ) : impostors.has(revealIndex) ? (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 14, opacity: 0.8 }}>Tu rol es:</div>
+                <div style={{ fontSize: 34, fontWeight: 800 }}>IMPOSTOR</div>
+                <div style={{ opacity: 0.8, marginTop: 6 }}>
+                  Finge que sabes la palabra. Escucha y no te delates.
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 14, opacity: 0.8 }}>La palabra es:</div>
+                <div style={{ fontSize: 34, fontWeight: 800 }}>{secretWord}</div>
+                <div style={{ opacity: 0.8, marginTop: 6 }}>
+                  Describe sin decir la palabra. Encuentren al impostor.
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Button
+              onClick={() => {
+                // next player
+                if (revealIndex + 1 >= cleanPlayers.length) {
+                  setScreen("play");
+                } else {
+                  setRevealIndex((i) => i + 1);
+                  setIsRevealed(false);
+                }
+              }}
+            >
+              {revealIndex + 1 >= cleanPlayers.length ? "Empezar ronda" : "Siguiente jugador"}
+            </Button>
+
+            <Button
+              onClick={() => {
+                // safety: hide before going back
+                setIsRevealed(false);
+                setScreen("setup");
+              }}
+            >
+              Volver a configuración
+            </Button>
+          </div>
+
+          <p style={{ marginTop: 12, opacity: 0.6, fontSize: 13 }}>
+            Consejo: no mires la pantalla cuando se lo pasas a otra persona.
+          </p>
+        </Card>
+      )}
+
+      {screen === "play" && (
+        <Card>
+          <h2 style={{ margin: "0 0 8px" }}>Ronda en curso</h2>
+          <p style={{ margin: "0 0 14px", opacity: 0.85 }}>
+            Hablen por turnos describiendo. Luego voten quién es el impostor.
+          </p>
+
+          <details style={{ marginBottom: 14 }}>
+            <summary style={{ cursor: "pointer" }}>Ver jugadores</summary>
+            <ul>
+              {cleanPlayers.map((p, i) => (
+                <li key={p + i}>{p}</li>
+              ))}
+            </ul>
+          </details>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Button onClick={() => setScreen("setup")}>Nueva ronda (reconfigurar)</Button>
+            <Button onClick={resetAll}>Salir</Button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
