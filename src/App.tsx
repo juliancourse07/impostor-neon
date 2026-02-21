@@ -396,7 +396,6 @@ const WORD_PACKS: Record<WordPackKey, { label: string; words: string[] }> = {
     ],
   },
 
-  // Mono Bandido uses "words" as concepts to describe (party-safe)
   mono_bandido: {
     label: "Mono Bandido (Party)",
     words: [
@@ -463,11 +462,18 @@ const PUNISHMENTS_MEDIO: BandidoPunishment[] = [
   { title: "Verdad", text: "Responde: ¿Cuál fue tu peor oso social? (respuesta corta)." },
 ];
 
+// UPDATED: more intense, party-safe, "perreo permitido"
 const PUNISHMENTS_SALVAJE: BandidoPunishment[] = [
-  { title: "No te rías", text: "Reto: 20 segundos sin reír. Si fallas, repites." },
-  { title: "Modo Dramático", text: "Di una frase dramática como villano (15s)." },
-  { title: "Roast suave", text: "Di un piropo + roast suave a alguien (sin insultos)." },
-  { title: "Mini-Show", text: "Haz un mini show: baile 10s o actuación 10s." },
+  { title: "BAILE 15s", text: "Baila 15s. (Perreo permitido si el grupo quiere)." },
+  { title: "KARAOKE 15s", text: "Canta 15 segundos como si estuvieras en un concierto." },
+  { title: "FREESTYLE 12s", text: "Improvisa 12s de rap sobre: 'fiesta y caos'." },
+  { title: "IMITACIÓN PRO", text: "Imita a un famoso o a alguien del grupo 15s (sin insultar)." },
+  { title: "NO TE RÍAS", text: "Reto: 25 segundos sin reír. Si fallas, repites 10s." },
+  { title: "MODO ROBOT", text: "En la próxima ronda, habla como robot en tu primer turno." },
+  { title: "MODO TELENOVELA", text: "Di una frase dramática 15s (con mano en la frente)." },
+  { title: "GRITO DE GUERRA", text: "Inventa un grito de guerra del grupo y hazlo 2 veces." },
+  { title: "VERDAD POTENTE", text: "Responde: ¿cuál fue tu peor oso en una fiesta? (corto)." },
+  { title: "POSE + FOTO", text: "Pose de portada 5s. Foto opcional (si todos quieren)." },
 ];
 
 function pickPunishment(intensity: BandidoIntensity) {
@@ -488,7 +494,7 @@ export default function App() {
   const [impostorsCount, setImpostorsCount] = useState(1);
   const [pack, setPack] = useState<WordPackKey>("lugares");
 
-  // NEW: toggles
+  // Toggles
   const [eventsEnabled, setEventsEnabled] = useState(true);
   const [monoBandidoEnabled, setMonoBandidoEnabled] = useState(false);
   const [bandidoIntensity, setBandidoIntensity] = useState<BandidoIntensity>("medio");
@@ -504,7 +510,7 @@ export default function App() {
   // Round data
   const [secretWord, setSecretWord] = useState<string>("");
 
-  // Bandido round spice
+  // Bandido spice
   const [roundEvent, setRoundEvent] = useState<BandidoEvent | null>(null);
   const [roundPunishment, setRoundPunishment] = useState<BandidoPunishment | null>(null);
   const [punishmentRerolled, setPunishmentRerolled] = useState(false);
@@ -532,10 +538,7 @@ export default function App() {
   const alarmedRef = useRef(false);
   const lastTickedRef = useRef<number | null>(null);
 
-  const cleanPlayers = useMemo(
-    () => players.map((p) => p.trim()).filter(Boolean),
-    [players],
-  );
+  const cleanPlayers = useMemo(() => players.map((p) => p.trim()).filter(Boolean), [players]);
 
   const canStart =
     cleanPlayers.length >= 3 &&
@@ -550,7 +553,10 @@ export default function App() {
     return c;
   }, [alive, impostors]);
 
-  const aliveCrewCount = useMemo(() => aliveCount - aliveImpostorsCount, [aliveCount, aliveImpostorsCount]);
+  const aliveCrewCount = useMemo(
+    () => aliveCount - aliveImpostorsCount,
+    [aliveCount, aliveImpostorsCount],
+  );
 
   const effectivePack: WordPackKey = monoBandidoEnabled ? "mono_bandido" : pack;
   const packInfo = WORD_PACKS[effectivePack];
@@ -575,9 +581,7 @@ export default function App() {
     const word = pickRandom(WORD_PACKS[effectivePack].words);
     setSecretWord(word);
 
-    const order = cleanPlayers
-      .map((_, i) => i)
-      .filter((i) => aliveState[i]);
+    const order = cleanPlayers.map((_, i) => i).filter((i) => aliveState[i]);
 
     setRevealOrder(order);
     setRevealPos(0);
@@ -588,8 +592,7 @@ export default function App() {
     setLastEjectedWasImpostor(null);
 
     // bandido spice
-    if (monoBandidoEnabled && eventsEnabled) setRoundEvent(pickRandom(BANDIDO_EVENTS));
-    else if (eventsEnabled) setRoundEvent(pickRandom(BANDIDO_EVENTS));
+    if (eventsEnabled) setRoundEvent(pickRandom(BANDIDO_EVENTS));
     else setRoundEvent(null);
 
     if (monoBandidoEnabled) {
@@ -737,7 +740,7 @@ export default function App() {
     playAlarm().catch(() => {});
   }, [screen, timeLeft]);
 
-  // ---------- UI helpers ----------
+  // UI helpers
   const Card = ({ children }: { children: React.ReactNode }) => (
     <div
       style={{
@@ -798,7 +801,7 @@ export default function App() {
             <Button
               onClick={() =>
                 alert(
-                  "Flujo:\n1) Configura jugadores\n2) Elige categoría (o Mono Bandido)\n3) Reparto\n4) Discusión con temporizador\n5) Votación\n6) Resultado (y castigo si aplica)\n7) Siguiente ronda",
+                  "Flujo:\n1) Configura jugadores\n2) Elige categoría (o Mono Bandido)\n3) Reparto\n4) Discusión con temporizador\n5) Votación\n6) Resultado (y penitencia si aplica)\n7) Siguiente ronda",
                 )
               }
             >
@@ -926,7 +929,7 @@ export default function App() {
                   })}
                 </div>
                 <p style={{ margin: "8px 0 0", opacity: 0.65, fontSize: 13 }}>
-                  Mono Bandido añade evento + castigo (party-safe) al resultado.
+                  Mono Bandido añade evento + penitencia (party-safe) al resultado.
                 </p>
               </div>
             )}
@@ -1177,7 +1180,20 @@ export default function App() {
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
               <div>
                 <div style={{ opacity: 0.75, fontSize: 13 }}>Tiempo</div>
-                <div style={{ fontSize: 34, fontWeight: 900, color: urgent ? "#ff6b6b" : "white" }}>
+                {/* UPDATED: stable width numbers to avoid "shrinking" */}
+                <div
+                  style={{
+                    fontSize: 34,
+                    fontWeight: 900,
+                    color: urgent ? "#ff6b6b" : "white",
+                    fontVariantNumeric: "tabular-nums",
+                    fontFeatureSettings: '"tnum"',
+                    letterSpacing: 0.5,
+                    lineHeight: 1.05,
+                    minWidth: 92,
+                    textAlign: "left",
+                  }}
+                >
                   {formatMMSS(timeLeft)}
                 </div>
               </div>
@@ -1304,6 +1320,7 @@ export default function App() {
             </>
           )}
 
+          {/* UPDATED: show who pays */}
           {monoBandidoEnabled && roundPunishment && (
             <div
               style={{
@@ -1314,7 +1331,16 @@ export default function App() {
                 marginBottom: 14,
               }}
             >
-              <div style={{ opacity: 0.8, fontSize: 13 }}>Mono Bandido — Castigo:</div>
+              <div style={{ opacity: 0.8, fontSize: 13 }}>Mono Bandido — Penitencia</div>
+
+              <div style={{ marginTop: 6, marginBottom: 10 }}>
+                <div style={{ opacity: 0.75, fontSize: 13 }}>PAGA:</div>
+                <div style={{ fontSize: 22, fontWeight: 900 }}>
+                  {ejected !== null ? cleanPlayers[ejected] : "—"}
+                </div>
+              </div>
+
+              <div style={{ opacity: 0.75, fontSize: 13 }}>RETO:</div>
               <div style={{ fontWeight: 900, fontSize: 18 }}>{roundPunishment.title}</div>
               <div style={{ opacity: 0.9 }}>{roundPunishment.text}</div>
 
@@ -1328,11 +1354,11 @@ export default function App() {
                   disabled={punishmentRerolled}
                   title="Solo 1 vez por ronda"
                 >
-                  Cambiar castigo (1x)
+                  Cambiar reto (1x)
                 </Button>
               </div>
 
-              <GhostHint>Regla: si a alguien no le gusta, se cambia sin discusión.</GhostHint>
+              <GhostHint>Regla: si alguien no quiere hacerlo, se cambia sin discusión.</GhostHint>
             </div>
           )}
 
