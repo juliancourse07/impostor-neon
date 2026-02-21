@@ -3,6 +3,20 @@ import "./App.css";
 
 type Screen = "home" | "setup" | "reveal" | "play" | "vote" | "result" | "gameover";
 
+type WordPackKey =
+  | "lugares"
+  | "comida"
+  | "objetos"
+  | "profesiones"
+  | "fiesta"
+  | "citas"
+  | "internet"
+  | "trabajo"
+  | "viajes"
+  | "deportes"
+  | "musica"
+  | "cine_series";
+
 function shuffle<T>(arr: T[]) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -27,7 +41,6 @@ function formatMMSS(totalSeconds: number) {
 }
 
 async function playAlarm() {
-  // WebAudio beep pattern (no asset needed)
   const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
   if (!AudioCtx) return;
 
@@ -35,7 +48,7 @@ async function playAlarm() {
   const now = ctx.currentTime;
 
   const master = ctx.createGain();
-  master.gain.value = 0.06; // not too loud
+  master.gain.value = 0.06;
   master.connect(ctx.destination);
 
   const beep = (t: number, freq: number, dur: number) => {
@@ -55,16 +68,13 @@ async function playAlarm() {
     osc.stop(t + dur + 0.02);
   };
 
-  // 3 beeps escalating
   beep(now + 0.0, 880, 0.18);
   beep(now + 0.25, 988, 0.18);
   beep(now + 0.5, 1108, 0.22);
 
-  // close context a bit later
   setTimeout(() => ctx.close().catch(() => {}), 1200);
 }
 
-// NEW: tick for the last 10 seconds
 async function playTick() {
   const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
   if (!AudioCtx) return;
@@ -95,12 +105,320 @@ async function playTick() {
   setTimeout(() => ctx.close().catch(() => {}), 200);
 }
 
+// --- Word packs (categories) ---
+const WORD_PACKS: Record<WordPackKey, { label: string; words: string[] }> = {
+  lugares: {
+    label: "Lugares",
+    words: [
+      "PLAYA",
+      "HOSPITAL",
+      "ESCUELA",
+      "AEROPUERTO",
+      "CINE",
+      "BIBLIOTECA",
+      "GIMNASIO",
+      "SUPERMERCADO",
+      "RESTAURANTE",
+      "HOTEL",
+      "PARQUE",
+      "IGLESIA",
+      "MUSEO",
+      "ESTADIO",
+      "GASOLINERA",
+      "METRO",
+      "ZOO",
+      "TEATRO",
+      "BAR",
+      "DISCOTECA",
+      "CAFETERIA",
+      "UNIVERSIDAD",
+      "OFICINA",
+    ],
+  },
+
+  comida: {
+    label: "Comida",
+    words: [
+      "PIZZA",
+      "HAMBURGUESA",
+      "SUSHI",
+      "TACOS",
+      "AREPA",
+      "PASTA",
+      "ENSALADA",
+      "HELADO",
+      "CHOCOLATE",
+      "EMPANADA",
+      "PAN",
+      "ARROZ",
+      "POLLO",
+      "SOPA",
+      "CAFÉ",
+      "JUGO",
+      "CERVEZA",
+      "VINO",
+      "TEQUILA",
+      "AGUARDIENTE",
+    ],
+  },
+
+  objetos: {
+    label: "Objetos",
+    words: [
+      "CELULAR",
+      "TECLADO",
+      "AUDIFONOS",
+      "MOCHILA",
+      "LAPIZ",
+      "CUADERNO",
+      "RELOJ",
+      "GAFAS",
+      "LLAVES",
+      "BOTELLA",
+      "CONTROL",
+      "CAMARA",
+      "SILLA",
+      "ESPEJO",
+      "PARAGUAS",
+      "CARGADOR",
+      "ANILLO",
+      "MAQUILLAJE",
+      "PERFUME",
+      "MALETA",
+    ],
+  },
+
+  profesiones: {
+    label: "Profesiones",
+    words: [
+      "DOCTOR",
+      "ENFERMERA",
+      "PROFESOR",
+      "POLICIA",
+      "BOMBERO",
+      "CHEF",
+      "PILOTO",
+      "ABOGADO",
+      "INGENIERO",
+      "DENTISTA",
+      "VETERINARIO",
+      "ARQUITECTO",
+      "PROGRAMADOR",
+      "DISEÑADOR",
+      "MUSICO",
+      "PSICOLOGO",
+      "PERIODISTA",
+      "FOTOGRAFO",
+      "BARBERO",
+      "EMPRENDEDOR",
+    ],
+  },
+
+  // ---- FUN PACKS (20-35) ----
+  fiesta: {
+    label: "Fiesta",
+    words: [
+      "SHOT",
+      "BRINDIS",
+      "KARAOKE",
+      "DJ",
+      "COPA",
+      "CERVEZA",
+      "VINO",
+      "COCTEL",
+      "AMIGOS",
+      "AFTER",
+      "BAILE",
+      "REGGAETON",
+      "ELECTRONICA",
+      "DISFRAZ",
+      "CUMPLEAÑOS",
+      "CONFETI",
+      "RESACA",
+      "FIESTA SORPRESA",
+    ],
+  },
+
+  citas: {
+    label: "Citas",
+    words: [
+      "PRIMERA CITA",
+      "MATCH",
+      "GHOSTING",
+      "RED FLAG",
+      "GREEN FLAG",
+      "COMPLIMENTO",
+      "FLORES",
+      "CENA",
+      "BESO",
+      "FRIENDZONE",
+      "PLAN TRANQUI",
+      "PLAN IMPROVISADO",
+      "RELACION",
+      "EX",
+      "CELOS",
+      "STALK",
+    ],
+  },
+
+  internet: {
+    label: "Internet",
+    words: [
+      "MEME",
+      "VIRAL",
+      "TIKTOK",
+      "INSTAGRAM",
+      "TWITTER",
+      "STREAM",
+      "CHAT",
+      "LIKE",
+      "FOLLOW",
+      "HATER",
+      "INFLUENCER",
+      "PODCAST",
+      "SPOILER",
+      "CAPTURA",
+      "WIFI",
+      "CRINGE",
+      "BAIT",
+    ],
+  },
+
+  trabajo: {
+    label: "Trabajo",
+    words: [
+      "REUNION",
+      "JUNTA",
+      "PRESENTACION",
+      "JEFE",
+      "OFICINA",
+      "TELETRABAJO",
+      "HOME OFFICE",
+      "EXCEL",
+      "CORREO",
+      "LLAMADA",
+      "HORAS EXTRA",
+      "SALARIO",
+      "RENUNCIA",
+      "VACACIONES",
+      "BURNOUT",
+      "CAFÉ",
+    ],
+  },
+
+  viajes: {
+    label: "Viajes",
+    words: [
+      "AEROPUERTO",
+      "MALETA",
+      "PASAPORTE",
+      "HOTEL",
+      "HOSTAL",
+      "MAPA",
+      "TOUR",
+      "PLAYA",
+      "MONTAÑA",
+      "MUSEO",
+      "FOTO",
+      "SOUVENIR",
+      "AVION",
+      "TREN",
+      "UBER",
+      "RESERVA",
+    ],
+  },
+
+  deportes: {
+    label: "Deportes",
+    words: [
+      "FUTBOL",
+      "BASKET",
+      "TENIS",
+      "CICLISMO",
+      "GIMNASIO",
+      "PESAS",
+      "CARDIO",
+      "ENTRENADOR",
+      "PARTIDO",
+      "FINAL",
+      "GOL",
+      "EQUIPO",
+      "CAMISETA",
+      "MARATON",
+      "YOGA",
+      "PILATES",
+    ],
+  },
+
+  musica: {
+    label: "Música",
+    words: [
+      "CONCIERTO",
+      "FESTIVAL",
+      "PLAYLIST",
+      "SPOTIFY",
+      "AURICULARES",
+      "GUITARRA",
+      "PIANO",
+      "BATERIA",
+      "CANTANTE",
+      "BANDA",
+      "ALBUM",
+      "CORO",
+      "RITMO",
+      "LETRA",
+      "MELODIA",
+      "AUTO-TUNE",
+    ],
+  },
+
+  cine_series: {
+    label: "Cine/Series",
+    words: [
+      "NETFLIX",
+      "CINE",
+      "SERIE",
+      "TEMPORADA",
+      "FINAL",
+      "SPOILER",
+      "TRAILER",
+      "ACTOR",
+      "ACTRIZ",
+      "DIRECTOR",
+      "POPCORN",
+      "MARATON",
+      "CAPITULO",
+      "VILLANO",
+      "HEROE",
+      "ESCENA POST-CREDITOS",
+    ],
+  },
+};
+
+const PACK_KEYS: WordPackKey[] = [
+  "lugares",
+  "comida",
+  "objetos",
+  "profesiones",
+  "fiesta",
+  "citas",
+  "internet",
+  "trabajo",
+  "viajes",
+  "deportes",
+  "musica",
+  "cine_series",
+];
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
 
   // Setup
   const [players, setPlayers] = useState<string[]>([""]);
   const [impostorsCount, setImpostorsCount] = useState(1);
+
+  // Pack selection
+  const [pack, setPack] = useState<WordPackKey>("lugares");
 
   // Keep focus in inputs while typing
   const playerInputRefs = useRef<Array<HTMLInputElement | null>>([]);
@@ -134,8 +452,6 @@ export default function App() {
   const [timeLeft, setTimeLeft] = useState<number>(90);
   const [timerRunning, setTimerRunning] = useState(false);
   const alarmedRef = useRef(false);
-
-  // NEW: avoid double tick on initial render, and ensure one tick per second
   const lastTickedRef = useRef<number | null>(null);
 
   const cleanPlayers = useMemo(
@@ -148,19 +464,6 @@ export default function App() {
     impostorsCount >= 1 &&
     impostorsCount < cleanPlayers.length;
 
-  const wordBank = [
-    "PIZZA",
-    "HOSPITAL",
-    "PLAYA",
-    "ESCUELA",
-    "AEROPUERTO",
-    "CINE",
-    "BIBLIOTECA",
-    "GIMNASIO",
-    "SUPERMERCADO",
-    "RESTAURANTE",
-  ];
-
   const aliveCount = useMemo(() => countAlive(alive), [alive]);
 
   const aliveImpostorsCount = useMemo(() => {
@@ -172,6 +475,9 @@ export default function App() {
   const aliveCrewCount = useMemo(() => {
     return aliveCount - aliveImpostorsCount;
   }, [aliveCount, aliveImpostorsCount]);
+
+  const packInfo = WORD_PACKS[pack];
+  const packCount = packInfo.words.length;
 
   function setUpNewGame() {
     const p = cleanPlayers;
@@ -189,7 +495,7 @@ export default function App() {
   }
 
   function startRoundWithState(aliveState: boolean[]) {
-    const word = pickRandom(wordBank);
+    const word = pickRandom(WORD_PACKS[pack].words);
     setSecretWord(word);
 
     const order = cleanPlayers
@@ -204,7 +510,6 @@ export default function App() {
     setEjected(null);
     setLastEjectedWasImpostor(null);
 
-    // reset timer for new round discussion
     setTimeLeft(discussionDuration);
     setTimerRunning(false);
     alarmedRef.current = false;
@@ -222,6 +527,7 @@ export default function App() {
     setScreen("home");
     setPlayers([""]);
     setImpostorsCount(1);
+    setPack("lugares");
 
     setAlive([]);
     setImpostors(new Set());
@@ -297,16 +603,14 @@ export default function App() {
     return () => window.clearInterval(id);
   }, [screen, timerRunning]);
 
-  // NEW: Tick in last 10 seconds (10..1), only when timer is running and on play screen
+  // Tick in last 10 seconds
   useEffect(() => {
     if (screen !== "play") return;
     if (!timerRunning) return;
 
     if (timeLeft <= 10 && timeLeft >= 1) {
-      // ensure one tick per second value
       if (lastTickedRef.current !== timeLeft) {
         lastTickedRef.current = timeLeft;
-
         playTick().catch(() => {});
         try {
           navigator.vibrate?.(20);
@@ -374,7 +678,6 @@ export default function App() {
     return cleanPlayers.map((p, i) => ({ name: p, i, alive: alive[i] ?? false }));
   }, [cleanPlayers, alive]);
 
-  // Timer UI derived
   const progress = useMemo(() => {
     const total = discussionDuration;
     if (total <= 0) return 0;
@@ -397,7 +700,7 @@ export default function App() {
             <Button
               onClick={() =>
                 alert(
-                  "Flujo:\n1) Configura jugadores\n2) Reparto (pasar el teléfono)\n3) Discusión con temporizador\n4) Votación (abierta)\n5) Se expulsa y se evalúa victoria\n6) Si nadie gana, siguiente ronda",
+                  "Flujo:\n1) Configura jugadores\n2) Elige categoría de palabras\n3) Reparto\n4) Discusión con temporizador\n5) Votación\n6) Rondas hasta que alguien gane",
                 )
               }
             >
@@ -476,10 +779,59 @@ export default function App() {
           </div>
 
           <label style={{ display: "block", marginBottom: 8, opacity: 0.9 }}>
+            Categoría de palabras
+          </label>
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+            {PACK_KEYS.map((k) => {
+              const selected = pack === k;
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setPack(k)}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: selected
+                      ? "1px solid rgba(255,255,255,0.38)"
+                      : "1px solid rgba(255,255,255,0.14)",
+                    background: selected ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.25)",
+                    color: "inherit",
+                    cursor: "pointer",
+                  }}
+                >
+                  {WORD_PACKS[k].label}
+                </button>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={() => setPack(pickRandom(PACK_KEYS))}
+              style={{
+                padding: "10px 12px",
+                borderRadius: 12,
+                border: "1px solid rgba(255,255,255,0.14)",
+                background: "rgba(0,0,0,0.25)",
+                color: "inherit",
+                cursor: "pointer",
+              }}
+              title="Elegir una categoría al azar"
+            >
+              Random
+            </button>
+          </div>
+
+          <div style={{ opacity: 0.8, marginBottom: 14, fontSize: 13 }}>
+            Pack seleccionado: <strong>{packInfo.label}</strong> — {packCount} palabras
+          </div>
+
+          <label style={{ display: "block", marginBottom: 8, opacity: 0.9 }}>
             Temporizador de discusión
           </label>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-            {([30, 60, 90, 120, 180] as const).map((sec) => {
+            {DURATION_OPTIONS.map((sec) => {
               const selected = discussionDuration === sec;
               return (
                 <button
@@ -528,6 +880,9 @@ export default function App() {
       {screen === "reveal" && (
         <Card>
           <h2 style={{ margin: "0 0 8px" }}>Revelar rol — Ronda {round}</h2>
+          <p style={{ margin: "0 0 10px", opacity: 0.85 }}>
+            Categoría: <strong>{packInfo.label}</strong>
+          </p>
           <p style={{ margin: "0 0 16px", opacity: 0.85 }}>
             Vivos: <strong>{aliveCount}</strong> (Tripulación {aliveCrewCount} / Impostores{" "}
             {aliveImpostorsCount})
@@ -583,7 +938,7 @@ export default function App() {
                   onClick={() => {
                     if (revealPos + 1 >= revealOrder.length) {
                       setScreen("play");
-                      setTimerRunning(true); // auto-start timer on entering discussion
+                      setTimerRunning(true);
                     } else {
                       setRevealPos((p) => p + 1);
                       setIsRevealed(false);
@@ -612,6 +967,10 @@ export default function App() {
       {screen === "play" && (
         <Card>
           <h2 style={{ margin: "0 0 8px" }}>Discusión — Ronda {round}</h2>
+
+          <div style={{ marginBottom: 10, opacity: 0.85 }}>
+            Categoría: <strong>{packInfo.label}</strong>
+          </div>
 
           <div
             style={{
@@ -764,7 +1123,7 @@ export default function App() {
             <Button onClick={resetAll}>Salir</Button>
           </div>
 
-          <p style={{ marginTop: 12, opacity: 0.6, fontSize: 13 }}>La palabra cambia cada ronda.</p>
+          <GhostHint>La palabra cambia cada ronda.</GhostHint>
         </Card>
       )}
 
