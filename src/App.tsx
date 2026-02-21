@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import "./App.css";
 
-type Screen = "home" | "setup" | "reveal" | "play" | "vote" | "result";
+type Screen = "home" | "setup" | "reveal" | "play" | "vote" | "result" | "gameover";
 
 function shuffle<T>(arr: T[]) {
   const a = [...arr];
@@ -16,6 +16,10 @@ function pickRandom<T>(arr: T[]) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function countAlive(alive: boolean[]) {
+  return alive.reduce((acc, v) => acc + (v ? 1 : 0), 0);
+}
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
 
@@ -26,17 +30,26 @@ export default function App() {
   // Keep focus in inputs while typing
   const playerInputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
+  // Game state (persists across rounds)
+  const [alive, setAlive] = useState<boolean[]>([]);
+  const [impostors, setImpostors] = useState<Set<number>>(new Set());
+  const [round, setRound] = useState(1);
+
   // Round data
   const [secretWord, setSecretWord] = useState<string>("");
-  const [impostors, setImpostors] = useState<Set<number>>(new Set());
 
   // Reveal flow
-  const [revealIndex, setRevealIndex] = useState(0);
+  const [revealOrder, setRevealOrder] = useState<number[]>([]);
+  const [revealPos, setRevealPos] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
 
   // Vote & result
   const [selectedSuspect, setSelectedSuspect] = useState<number | null>(null);
   const [ejected, setEjected] = useState<number | null>(null);
+  const [lastEjectedWasImpostor, setLastEjectedWasImpostor] = useState<boolean | null>(null);
+
+  // Winner
+  const [winner, setWinner] = useState<"tripulacion" | "impostores" | null>(null);
 
   const cleanPlayers = useMemo(
     () => players.map((p) => p.trim()).filter(Boolean),
@@ -61,24 +74,86 @@ export default function App() {
     "RESTAURANTE",
   ];
 
-  function startRound() {
-    const p = cleanPlayers;
-    const word = pickRandom(wordBank);
+  const aliveCount = useMemo(() => countAlive(alive), [alive]);
 
-    // choose impostors
+  const aliveImpostorsCount = useMemo(() => {
+    let c = 0;
+    for (const idx of impostors) if (alive[idx]) c++;
+    return c;
+  }, [alive, impostors]);
+
+  const aliveCrewCount = useMemo(() => {
+    return aliveCount - aliveImpostorsCount;
+  }, [aliveCount, aliveImpostorsCount]);
+
+  function setUpNewGame() {
+    const p = cleanPlayers;
+
+    // init alive status
+    const aliveInit = p.map(() => true);
+    setAlive(aliveInit);
+
+    // choose impostors among all players
     const idxs = shuffle(p.map((_, i) => i)).slice(0, impostorsCount);
-    setSecretWord(word);
     setImpostors(new Set(idxs));
 
-    // reset reveal
-    setRevealIndex(0);
+    // reset round counter
+    setRound(1);
+
+    // reset winner
+    setWinner(null);
+
+    // start first round
+    startRoundWithState(aliveInit);
+  }
+
+  function startRoundWithState(aliveState: boolean[]) {
+    // choose new word each round
+    const word = pickRandom(wordBank);
+    setSecretWord(word);
+
+    // build reveal order only with alive players
+    const order = cleanPlayers
+      .map((_, i) => i)
+      .filter((i) => aliveState[i]);
+
+    setRevealOrder(order);
+    setRevealPos(0);
     setIsRevealed(false);
 
     // reset vote/result
     setSelectedSuspect(null);
     setEjected(null);
+    setLastEjectedWasImpostor(null);
 
     setScreen("reveal");
+  }
+
+  function startNextRound() {
+    setRound((r) => r + 1);
+    // use current alive state
+    startRoundWithState(alive);
+  }
+
+  function resetAll() {
+    setScreen("home");
+    setPlayers([""]);
+    setImpostorsCount(1);
+
+    setAlive([]);
+    setImpostors(new Set());
+    setRound(1);
+    setSecretWord("");
+
+    setRevealOrder([]);
+    setRevealPos(0);
+    setIsRevealed(false);
+
+    setSelectedSuspect(null);
+    setEjected(null);
+    setLastEjectedWasImpostor(null);
+
+    setWinner(null);
   }
 
   function goToVote() {
@@ -88,33 +163,40 @@ export default function App() {
 
   function confirmVote() {
     if (selectedSuspect === null) return;
-    setEjected(selectedSuspect);
+
+    // Eject the selected suspect
+    const idx = selectedSuspect;
+    const wasImpostor = impostors.has(idx);
+
+    setEjected(idx);
+    setLastEjectedWasImpostor(wasImpostor);
+
+    const nextAlive = [...alive];
+    nextAlive[idx] = false;
+    setAlive(nextAlive);
+
+    // Check win conditions AFTER ejection
+    const nextAliveCount = countAlive(nextAlive);
+    let nextAliveImpostors = 0;
+    for (const imp of impostors) if (nextAlive[imp]) nextAliveImpostors++;
+
+    const nextAliveCrew = nextAliveCount - nextAliveImpostors;
+
+    if (nextAliveImpostors <= 0) {
+      setWinner("tripulacion");
+      setScreen("gameover");
+      return;
+    }
+
+    if (nextAliveImpostors >= nextAliveCrew) {
+      setWinner("impostores");
+      setScreen("gameover");
+      return;
+    }
+
+    // otherwise continue
     setScreen("result");
   }
-
-  function playAgainSamePlayers() {
-    // keep same players & impostor count; just re-roll word + impostors
-    startRound();
-  }
-
-  function resetAll() {
-    setScreen("home");
-    setPlayers([""]);
-    setImpostorsCount(1);
-    setSecretWord("");
-    setImpostors(new Set());
-    setRevealIndex(0);
-    setIsRevealed(false);
-    setSelectedSuspect(null);
-    setEjected(null);
-  }
-
-  const outcome = useMemo(() => {
-    if (ejected === null) return null;
-    const ejectedWasImpostor = impostors.has(ejected);
-    // Simple rule: if ejected is impostor => crew wins, else impostors win
-    return ejectedWasImpostor ? "tripulacion" : "impostores";
-  }, [ejected, impostors]);
 
   // ---------- UI helpers ----------
   const Card = ({ children }: { children: React.ReactNode }) => (
@@ -151,6 +233,10 @@ export default function App() {
     <p style={{ marginTop: 12, opacity: 0.6, fontSize: 13 }}>{children}</p>
   );
 
+  const alivePlayersList = useMemo(() => {
+    return cleanPlayers.map((p, i) => ({ name: p, i, alive: alive[i] ?? false }));
+  }, [cleanPlayers, alive]);
+
   return (
     <div style={{ minHeight: "100vh", padding: 22, display: "grid", placeItems: "center" }}>
       {screen === "home" && (
@@ -162,13 +248,10 @@ export default function App() {
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <Button onClick={() => setScreen("setup")}>Crear partida</Button>
-            <Button disabled title="En modo 1 dispositivo no hace falta.">
-              Unirme
-            </Button>
             <Button
               onClick={() =>
                 alert(
-                  "1) Agreguen jugadores\n2) Iniciar reparto\n3) Pasen el teléfono: cada jugador revela su rol\n4) Discusión\n5) Votación abierta\n6) Resultado",
+                  "Flujo:\n1) Configura jugadores\n2) Reparto (pasar el teléfono)\n3) Discusión\n4) Votación (abierta)\n5) Se expulsa y se evalúa victoria\n6) Si nadie gana, siguiente ronda",
                 )
               }
             >
@@ -255,8 +338,8 @@ export default function App() {
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <Button onClick={() => setScreen("home")}>Volver</Button>
-            <Button onClick={startRound} disabled={!canStart}>
-              Iniciar reparto (pasar el teléfono)
+            <Button onClick={setUpNewGame} disabled={!canStart}>
+              Empezar juego
             </Button>
           </div>
         </Card>
@@ -264,101 +347,109 @@ export default function App() {
 
       {screen === "reveal" && (
         <Card>
-          <h2 style={{ margin: "0 0 8px" }}>Revelar rol</h2>
+          <h2 style={{ margin: "0 0 8px" }}>Revelar rol — Ronda {round}</h2>
           <p style={{ margin: "0 0 16px", opacity: 0.85 }}>
-            Jugador <strong>{revealIndex + 1}</strong> de <strong>{cleanPlayers.length}</strong>
+            Vivos: <strong>{aliveCount}</strong> (Tripulación {aliveCrewCount} / Impostores{" "}
+            {aliveImpostorsCount})
           </p>
 
-          <div
-            style={{
-              padding: 16,
-              borderRadius: 16,
-              border: "1px solid rgba(255,255,255,0.12)",
-              background: "rgba(0,0,0,0.25)",
-              marginBottom: 14,
-            }}
-          >
-            <div style={{ fontSize: 18, opacity: 0.9, marginBottom: 8 }}>
-              Pásale el teléfono a:
-            </div>
-            <div style={{ fontSize: 28, fontWeight: 700 }}>{cleanPlayers[revealIndex]}</div>
+          {revealOrder.length > 0 && (
+            <>
+              <p style={{ margin: "0 0 16px", opacity: 0.85 }}>
+                Jugador <strong>{revealPos + 1}</strong> de <strong>{revealOrder.length}</strong>
+              </p>
 
-            <div style={{ height: 12 }} />
-
-            {!isRevealed ? (
-              <Button onClick={() => setIsRevealed(true)}>Tocar para ver mi rol</Button>
-            ) : impostors.has(revealIndex) ? (
-              <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 14, opacity: 0.8 }}>Tu rol es:</div>
-                <div style={{ fontSize: 34, fontWeight: 800 }}>IMPOSTOR</div>
-                <div style={{ opacity: 0.8, marginTop: 6 }}>
-                  Finge que sabes la palabra. Escucha y no te delates.
+              <div
+                style={{
+                  padding: 16,
+                  borderRadius: 16,
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: "rgba(0,0,0,0.25)",
+                  marginBottom: 14,
+                }}
+              >
+                <div style={{ fontSize: 18, opacity: 0.9, marginBottom: 8 }}>
+                  Pásale el teléfono a:
                 </div>
-              </div>
-            ) : (
-              <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 14, opacity: 0.8 }}>La palabra es:</div>
-                <div style={{ fontSize: 34, fontWeight: 800 }}>{secretWord}</div>
-                <div style={{ opacity: 0.8, marginTop: 6 }}>
-                  Describe sin decir la palabra. Encuentren al impostor.
+                <div style={{ fontSize: 28, fontWeight: 700 }}>
+                  {cleanPlayers[revealOrder[revealPos]]}
                 </div>
+
+                <div style={{ height: 12 }} />
+
+                {!isRevealed ? (
+                  <Button onClick={() => setIsRevealed(true)}>Tocar para ver mi rol</Button>
+                ) : impostors.has(revealOrder[revealPos]) ? (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ fontSize: 14, opacity: 0.8 }}>Tu rol es:</div>
+                    <div style={{ fontSize: 34, fontWeight: 800 }}>IMPOSTOR</div>
+                    <div style={{ opacity: 0.8, marginTop: 6 }}>
+                      Finge que sabes la palabra. Escucha y no te delates.
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ fontSize: 14, opacity: 0.8 }}>La palabra es:</div>
+                    <div style={{ fontSize: 34, fontWeight: 800 }}>{secretWord}</div>
+                    <div style={{ opacity: 0.8, marginTop: 6 }}>
+                      Describe sin decir la palabra. Encuentren al impostor.
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Button
-              onClick={() => {
-                if (revealIndex + 1 >= cleanPlayers.length) {
-                  setScreen("play");
-                } else {
-                  setRevealIndex((i) => i + 1);
-                  setIsRevealed(false);
-                }
-              }}
-            >
-              {revealIndex + 1 >= cleanPlayers.length ? "Empezar discusión" : "Siguiente jugador"}
-            </Button>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <Button
+                  onClick={() => {
+                    if (revealPos + 1 >= revealOrder.length) {
+                      setScreen("play");
+                    } else {
+                      setRevealPos((p) => p + 1);
+                      setIsRevealed(false);
+                    }
+                  }}
+                >
+                  {revealPos + 1 >= revealOrder.length ? "Empezar discusión" : "Siguiente jugador"}
+                </Button>
 
-            <Button
-              onClick={() => {
-                setIsRevealed(false);
-                setScreen("setup");
-              }}
-            >
-              Volver a configuración
-            </Button>
-          </div>
+                <Button
+                  onClick={() => {
+                    setIsRevealed(false);
+                    setScreen("setup");
+                  }}
+                >
+                  Reiniciar juego
+                </Button>
+              </div>
 
-          <GhostHint>Consejo: no mires la pantalla cuando se lo pasas a otra persona.</GhostHint>
+              <GhostHint>Consejo: no mires la pantalla cuando se lo pasas a otra persona.</GhostHint>
+            </>
+          )}
         </Card>
       )}
 
       {screen === "play" && (
         <Card>
-          <h2 style={{ margin: "0 0 8px" }}>Discusión</h2>
+          <h2 style={{ margin: "0 0 8px" }}>Discusión — Ronda {round}</h2>
           <p style={{ margin: "0 0 14px", opacity: 0.85 }}>
             Hablen por turnos describiendo. Cuando estén listos, vayan a votación.
           </p>
 
           <details style={{ marginBottom: 14 }}>
-            <summary style={{ cursor: "pointer" }}>Ver jugadores</summary>
+            <summary style={{ cursor: "pointer" }}>Ver vivos</summary>
             <ul>
-              {cleanPlayers.map((p, i) => (
-                <li key={p + i}>{p}</li>
-              ))}
+              {alivePlayersList
+                .filter((p) => p.alive)
+                .map((p) => (
+                  <li key={p.name + p.i}>{p.name}</li>
+                ))}
             </ul>
           </details>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <Button onClick={goToVote}>Ir a votación</Button>
-            <Button onClick={() => setScreen("setup")}>Nueva ronda (reconfigurar)</Button>
             <Button onClick={resetAll}>Salir</Button>
           </div>
-
-          <GhostHint>
-            (Luego podemos agregar temporizador y botón “Revelar palabra” para el final.)
-          </GhostHint>
         </Card>
       )}
 
@@ -366,34 +457,36 @@ export default function App() {
         <Card>
           <h2 style={{ margin: "0 0 8px" }}>Votación (abierta)</h2>
           <p style={{ margin: "0 0 14px", opacity: 0.85 }}>
-            Elijan a quién expulsar. Luego confirmen el voto.
+            Elijan a quién expulsar (solo jugadores vivos).
           </p>
 
           <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
-            {cleanPlayers.map((p, i) => {
-              const selected = selectedSuspect === i;
-              return (
-                <button
-                  key={p + i}
-                  type="button"
-                  onClick={() => setSelectedSuspect(i)}
-                  style={{
-                    textAlign: "left",
-                    padding: "12px 14px",
-                    borderRadius: 14,
-                    border: selected
-                      ? "1px solid rgba(255,255,255,0.38)"
-                      : "1px solid rgba(255,255,255,0.14)",
-                    background: selected ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.25)",
-                    color: "inherit",
-                    cursor: "pointer",
-                  }}
-                >
-                  {p}
-                  {selected ? "  ✓" : ""}
-                </button>
-              );
-            })}
+            {alivePlayersList
+              .filter((p) => p.alive)
+              .map((p) => {
+                const selected = selectedSuspect === p.i;
+                return (
+                  <button
+                    key={p.name + p.i}
+                    type="button"
+                    onClick={() => setSelectedSuspect(p.i)}
+                    style={{
+                      textAlign: "left",
+                      padding: "12px 14px",
+                      borderRadius: 14,
+                      border: selected
+                        ? "1px solid rgba(255,255,255,0.38)"
+                        : "1px solid rgba(255,255,255,0.14)",
+                      background: selected ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.25)",
+                      color: "inherit",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {p.name}
+                    {selected ? "  ✓" : ""}
+                  </button>
+                );
+              })}
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -402,35 +495,41 @@ export default function App() {
               Confirmar expulsión
             </Button>
           </div>
-
-          <GhostHint>Esto es votación abierta: todos ven la pantalla.</GhostHint>
         </Card>
       )}
 
       {screen === "result" && (
         <Card>
-          <h2 style={{ margin: "0 0 8px" }}>Resultado</h2>
+          <h2 style={{ margin: "0 0 8px" }}>Resultado de votación</h2>
 
           {ejected !== null && (
             <>
               <p style={{ margin: "0 0 10px", opacity: 0.9 }}>
                 Expulsado: <strong>{cleanPlayers[ejected]}</strong>
               </p>
-
               <p style={{ margin: "0 0 14px", opacity: 0.85 }}>
-                {impostors.has(ejected)
-                  ? "Era IMPOSTOR."
-                  : "No era impostor."}
+                {lastEjectedWasImpostor ? "Era IMPOSTOR." : "No era impostor."}
               </p>
             </>
           )}
 
-          <details style={{ marginBottom: 14 }}>
-            <summary style={{ cursor: "pointer" }}>Revelar impostores</summary>
-            <ul>
-              {cleanPlayers.map((p, i) => (impostors.has(i) ? <li key={p + i}>{p}</li> : null))}
-            </ul>
-          </details>
+          <p style={{ margin: "0 0 14px", opacity: 0.85 }}>
+            Quedan vivos: <strong>{countAlive(alive)}</strong> (Tripulación {aliveCrewCount} /
+            Impostores {aliveImpostorsCount})
+          </p>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Button onClick={startNextRound}>Siguiente ronda</Button>
+            <Button onClick={resetAll}>Salir</Button>
+          </div>
+
+          <GhostHint>La palabra cambia cada ronda.</GhostHint>
+        </Card>
+      )}
+
+      {screen === "gameover" && (
+        <Card>
+          <h2 style={{ margin: "0 0 8px" }}>Fin del juego</h2>
 
           <div
             style={{
@@ -441,23 +540,33 @@ export default function App() {
               marginBottom: 14,
             }}
           >
-            <div style={{ opacity: 0.8, fontSize: 13 }}>Ganador (regla simple):</div>
-            <div style={{ fontSize: 22, fontWeight: 800 }}>
-              {outcome === "tripulacion"
+            <div style={{ opacity: 0.8, fontSize: 13 }}>Ganador:</div>
+            <div style={{ fontSize: 24, fontWeight: 900 }}>
+              {winner === "tripulacion"
                 ? "TRIPULACIÓN"
-                : outcome === "impostores"
+                : winner === "impostores"
                   ? "IMPOSTORES"
                   : "-"}
             </div>
-            <div style={{ opacity: 0.65, fontSize: 13, marginTop: 6 }}>
-              Regla actual: si expulsan a un impostor gana la tripulación, si no, ganan los
-              impostores. (Luego la hacemos más pro.)
-            </div>
           </div>
 
+          <details style={{ marginBottom: 14 }}>
+            <summary style={{ cursor: "pointer" }}>Revelar impostores</summary>
+            <ul>
+              {cleanPlayers.map((p, i) => (impostors.has(i) ? <li key={p + i}>{p}</li> : null))}
+            </ul>
+          </details>
+
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Button onClick={playAgainSamePlayers}>Jugar otra (mismos jugadores)</Button>
-            <Button onClick={() => setScreen("setup")}>Cambiar jugadores</Button>
+            <Button
+              onClick={() => {
+                // restart with same players & impostor count (new impostors are re-picked)
+                setUpNewGame();
+              }}
+            >
+              Jugar otra (mismos nombres)
+            </Button>
+            <Button onClick={() => setScreen("setup")}>Cambiar configuración</Button>
             <Button onClick={resetAll}>Home</Button>
           </div>
         </Card>
