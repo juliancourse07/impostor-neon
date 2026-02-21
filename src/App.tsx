@@ -499,6 +499,9 @@ export default function App() {
   const [monoBandidoEnabled, setMonoBandidoEnabled] = useState(false);
   const [bandidoIntensity, setBandidoIntensity] = useState<BandidoIntensity>("medio");
 
+  // NEW: If game ends, show result first (so penalty shows), then allow "Ver ganador"
+  const [pendingGameOver, setPendingGameOver] = useState<"tripulacion" | "impostores" | null>(null);
+
   // Keep focus in inputs while typing
   const playerInputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -573,6 +576,7 @@ export default function App() {
 
     setRound(1);
     setWinner(null);
+    setPendingGameOver(null);
 
     startRoundWithState(aliveInit);
   }
@@ -625,6 +629,7 @@ export default function App() {
     setEventsEnabled(true);
     setMonoBandidoEnabled(false);
     setBandidoIntensity("medio");
+    setPendingGameOver(null);
 
     setAlive([]);
     setImpostors(new Set());
@@ -658,6 +663,8 @@ export default function App() {
     setScreen("vote");
   }
 
+  // FIXED: In Mono Bandido we ALWAYS go to "result" first (to show penalty),
+  // then allow going to "gameover" via a button if the game ended.
   function confirmVote() {
     if (selectedSuspect === null) return;
 
@@ -677,14 +684,19 @@ export default function App() {
 
     const nextAliveCrew = nextAliveCount - nextAliveImpostors;
 
-    if (nextAliveImpostors <= 0) {
-      setWinner("tripulacion");
-      setScreen("gameover");
+    let nextWinner: "tripulacion" | "impostores" | null = null;
+    if (nextAliveImpostors <= 0) nextWinner = "tripulacion";
+    else if (nextAliveImpostors >= nextAliveCrew) nextWinner = "impostores";
+
+    if (monoBandidoEnabled) {
+      setPendingGameOver(nextWinner);
+      if (nextWinner) setWinner(nextWinner);
+      setScreen("result");
       return;
     }
 
-    if (nextAliveImpostors >= nextAliveCrew) {
-      setWinner("impostores");
+    if (nextWinner) {
+      setWinner(nextWinner);
       setScreen("gameover");
       return;
     }
@@ -929,7 +941,8 @@ export default function App() {
                   })}
                 </div>
                 <p style={{ margin: "8px 0 0", opacity: 0.65, fontSize: 13 }}>
-                  Mono Bandido añade evento + penitencia (party-safe) al resultado.
+                  Mono Bandido añade evento + penitencia (party-safe) al resultado. En este modo,
+                  siempre verás el resultado antes del ganador.
                 </p>
               </div>
             )}
@@ -1180,7 +1193,6 @@ export default function App() {
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
               <div>
                 <div style={{ opacity: 0.75, fontSize: 13 }}>Tiempo</div>
-                {/* UPDATED: stable width numbers to avoid "shrinking" */}
                 <div
                   style={{
                     fontSize: 34,
@@ -1320,7 +1332,6 @@ export default function App() {
             </>
           )}
 
-          {/* UPDATED: show who pays */}
           {monoBandidoEnabled && roundPunishment && (
             <div
               style={{
@@ -1368,7 +1379,18 @@ export default function App() {
           </p>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Button onClick={startNextRound}>Siguiente ronda</Button>
+            {pendingGameOver ? (
+              <Button
+                onClick={() => {
+                  setPendingGameOver(null);
+                  setScreen("gameover");
+                }}
+              >
+                Ver ganador
+              </Button>
+            ) : (
+              <Button onClick={startNextRound}>Siguiente ronda</Button>
+            )}
             <Button onClick={resetAll}>Salir</Button>
           </div>
 
