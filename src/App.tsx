@@ -498,6 +498,12 @@ export default function App() {
   const [monoBandidoEnabled, setMonoBandidoEnabled] = useState(false);
   const [bandidoIntensity, setBandidoIntensity] = useState<BandidoIntensity>("medio");
 
+  // ✅ Theme: activate "Mono Bandido" club-neon look by toggling a body class
+  useEffect(() => {
+    document.body.classList.toggle("mono-bandido", monoBandidoEnabled);
+    return () => document.body.classList.remove("mono-bandido");
+  }, [monoBandidoEnabled]);
+
   // If game ends, show result first (so penalty shows), then allow "Ver ganador"
   const [pendingGameOver, setPendingGameOver] = useState<"tripulacion" | "impostores" | null>(null);
 
@@ -547,6 +553,8 @@ export default function App() {
   const [timerRunning, setTimerRunning] = useState(false);
   const alarmedRef = useRef(false);
   const lastTickedRef = useRef<number | null>(null);
+
+
 
   const cleanPlayers = useMemo(() => players.map((p) => p.trim()).filter(Boolean), [players]);
 
