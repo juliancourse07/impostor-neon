@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import "./App.css";
 
 type Screen = "home" | "setup" | "reveal" | "play";
@@ -23,6 +23,9 @@ export default function App() {
   const [players, setPlayers] = useState<string[]>([""]);
   const [impostorsCount, setImpostorsCount] = useState(1);
 
+  // Keep focus in inputs while typing
+  const playerInputRefs = useRef<Array<HTMLInputElement | null>>([]);
+
   // Round data
   const [secretWord, setSecretWord] = useState<string>("");
   const [impostors, setImpostors] = useState<Set<number>>(new Set());
@@ -37,7 +40,9 @@ export default function App() {
   );
 
   const canStart =
-    cleanPlayers.length >= 3 && impostorsCount >= 1 && impostorsCount < cleanPlayers.length;
+    cleanPlayers.length >= 3 &&
+    impostorsCount >= 1 &&
+    impostorsCount < cleanPlayers.length;
 
   const wordBank = [
     "PIZZA",
@@ -109,7 +114,9 @@ export default function App() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", padding: 22, display: "grid", placeItems: "center" }}>
+    <div
+      style={{ minHeight: "100vh", padding: 22, display: "grid", placeItems: "center" }}
+    >
       {screen === "home" && (
         <Card>
           <h1 style={{ fontSize: 44, margin: "0 0 6px" }}>impostor-neon</h1>
@@ -147,11 +154,17 @@ export default function App() {
             {players.map((value, i) => (
               <div key={i} style={{ display: "flex", gap: 8 }}>
                 <input
+                  ref={(el) => {
+                    playerInputRefs.current[i] = el;
+                  }}
                   value={value}
                   onChange={(e) => {
                     const next = [...players];
                     next[i] = e.target.value;
                     setPlayers(next);
+
+                    // Mantener foco en el mismo input (evita que se "deseleccione")
+                    queueMicrotask(() => playerInputRefs.current[i]?.focus());
                   }}
                   placeholder={`Jugador ${i + 1}`}
                   style={{
