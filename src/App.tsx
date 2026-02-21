@@ -820,6 +820,7 @@ export default function App() {
   // UI helpers
   const Card = ({ children }: { children: React.ReactNode }) => (
     <div
+      className="card"
       style={{
         width: "100%",
         maxWidth: 720,
@@ -829,7 +830,7 @@ export default function App() {
         padding: 18,
       }}
     >
-      {children}
+      <div className="screen">{children}</div>
     </div>
   );
 
@@ -866,6 +867,40 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", padding: 22, display: "grid", placeItems: "center" }}>
+      {monoBandidoEnabled && (
+        <div className="mb-badge">
+          <svg
+            width="26"
+            height="26"
+            viewBox="0 0 26 26"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle cx="13" cy="13" r="12" stroke="#c96dff" strokeWidth="1.5" fill="rgba(180,75,255,0.12)" />
+            {/* Bandit mask curve — arcs across the middle of the circle */}
+            <path
+              d="M5.5 10.5 Q13 7.5 20.5 10.5"
+              stroke="#c96dff"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              fill="none"
+              opacity="0.7"
+            />
+            <text
+              x="13"
+              y="18.5"
+              textAnchor="middle"
+              fill="#c96dff"
+              fontSize="8.5"
+              fontWeight="900"
+              fontFamily="ui-sans-serif,system-ui,sans-serif"
+            >
+              MB
+            </text>
+          </svg>
+          Mono Bandido
+        </div>
+      )}
       {screen === "home" && (
         <Card>
           <h1 style={{ fontSize: 44, margin: "0 0 6px" }}>impostor-neon</h1>
@@ -1224,6 +1259,12 @@ export default function App() {
         <Card>
           <h2 style={{ margin: "0 0 8px" }}>Discusión — Ronda {round}</h2>
 
+          {urgent && (
+            <div className="urgente-badge">
+              <span>⚠</span> URGENTE
+            </div>
+          )}
+
           <div style={{ marginBottom: 10, opacity: 0.85 }}>
             Categoría: <strong>{packInfo.label}</strong>
           </div>
@@ -1351,14 +1392,29 @@ export default function App() {
 
             return (
               <>
-                <div style={{ marginBottom: 12, opacity: 0.9 }}>
+                <div className="vote-turn">
                   {votingDone ? (
-                    <strong>Listo: ya votaron todos.</strong>
+                    <span>Listo: ya votaron todos.</span>
                   ) : (
                     <>
-                      Turno de: <strong>{cleanPlayers[currentVoter]}</strong>
+                      Turno de:{" "}
+                      <span className="vote-turn-name">{cleanPlayers[currentVoter]}</span>
                     </>
                   )}
+                </div>
+
+                <div className="vote-progress">
+                  <div className="vote-progress-label">
+                    {voterTurn} de {aliveVoters.length} votos registrados
+                  </div>
+                  <div className="vote-progress-track">
+                    <div
+                      className="vote-progress-fill"
+                      style={{
+                        width: `${aliveVoters.length > 0 ? (voterTurn / aliveVoters.length) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
                 </div>
 
                 <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>

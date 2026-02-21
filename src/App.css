@@ -197,3 +197,174 @@ body.mono-bandido button:hover:not(:disabled) {
     box-shadow: 0 0 28px rgba(255, 75, 106, 0.22);
   }
 }
+/* ---------- SCREEN TRANSITIONS ---------- */
+/* Animate in on mount; position:relative + z-index keep content above card::before overlay */
+.screen {
+  animation: screenIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes screenIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.982);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen {
+    animation: none;
+  }
+}
+
+/* ---------- CARD ENHANCEMENTS ---------- */
+/* Inner glow */
+.card {
+  position: relative;
+  box-shadow:
+    inset 0 0 60px rgba(89, 243, 255, 0.04),
+    inset 0 0 100px rgba(76, 125, 255, 0.025);
+}
+
+/* Diagonal hatching pattern + sparkle dots overlay.
+   Three sparse radial-gradient "dots" (cyan/purple/pink, 1px each) at different
+   tile sizes create a subtle sparkle; the repeating-linear-gradient adds 45° hatching. */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image:
+    radial-gradient(circle, rgba(89, 243, 255, 0.18) 1px, transparent 1px),   /* cyan sparks, 110px grid */
+    radial-gradient(circle, rgba(180, 75, 255, 0.14) 1px, transparent 1px),   /* purple sparks, 90px grid */
+    radial-gradient(circle, rgba(255, 79, 216, 0.12) 1px, transparent 1px),   /* pink sparks, 140px grid */
+    repeating-linear-gradient(                                                  /* 45° hatch at 16px pitch */
+      -45deg,
+      rgba(255, 255, 255, 0.018) 0px,
+      rgba(255, 255, 255, 0.018) 1px,
+      transparent 1px,
+      transparent 16px
+    );
+  background-size: 110px 110px, 90px 90px, 140px 140px, 16px 16px;
+  background-position: 22px 18px, 55px 42px, 80px 70px, 0 0; /* offset each layer so dots don't align */
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Card content sits above the pseudo-element overlay — handled by .screen above */
+
+/* ---------- MONO BANDIDO FIXED BADGE ---------- */
+.mb-badge {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px 5px 6px;
+  border-radius: 999px;
+  background: rgba(180, 75, 255, 0.12);
+  border: 1px solid rgba(180, 75, 255, 0.45);
+  font-size: 12px;
+  font-weight: 800;
+  color: #c96dff;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+  animation: mbGlow 2.5s ease-in-out infinite;
+}
+
+@keyframes mbGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 14px rgba(180, 75, 255, 0.18), 0 0 28px rgba(180, 75, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(180, 75, 255, 0.32), 0 0 44px rgba(180, 75, 255, 0.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mb-badge {
+    animation: none;
+  }
+}
+
+/* ---------- URGENTE BADGE ---------- */
+.urgente-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(255, 75, 106, 0.15);
+  border: 1px solid rgba(255, 75, 106, 0.5);
+  color: #ff6b86;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  animation: urgPulse 0.55s ease-in-out infinite alternate;
+  margin-bottom: 10px;
+}
+
+@keyframes urgPulse {
+  from {
+    box-shadow: 0 0 6px rgba(255, 75, 106, 0.2);
+  }
+  to {
+    box-shadow: 0 0 18px rgba(255, 75, 106, 0.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .urgente-badge {
+    animation: none;
+  }
+}
+
+/* ---------- VOTE TURN LABEL ---------- */
+.vote-turn {
+  font-size: 22px;
+  font-weight: 900;
+  margin-bottom: 14px;
+  letter-spacing: 0.01em;
+}
+
+.vote-turn-name {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 18px rgba(89, 243, 255, 0.45);
+}
+
+/* ---------- VOTE PROGRESS BAR ---------- */
+.vote-progress {
+  margin-bottom: 14px;
+}
+
+.vote-progress-label {
+  font-size: 13px;
+  opacity: 0.75;
+  margin-bottom: 5px;
+}
+
+.vote-progress-track {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.vote-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-blue));
+  transition: width 0.3s ease;
+}
