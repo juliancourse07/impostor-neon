@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
 type Screen = "home" | "setup" | "reveal" | "play" | "vote" | "result" | "gameover";
@@ -18,6 +18,50 @@ function pickRandom<T>(arr: T[]) {
 
 function countAlive(alive: boolean[]) {
   return alive.reduce((acc, v) => acc + (v ? 1 : 0), 0);
+}
+
+function formatMMSS(totalSeconds: number) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+async function playAlarm() {
+  // WebAudio beep pattern (no asset needed)
+  const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+  if (!AudioCtx) return;
+
+  const ctx = new AudioCtx();
+  const now = ctx.currentTime;
+
+  const master = ctx.createGain();
+  master.gain.value = 0.06; // not too loud
+  master.connect(ctx.destination);
+
+  const beep = (t: number, freq: number, dur: number) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "square";
+    osc.frequency.value = freq;
+
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(1, t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+    osc.connect(gain);
+    gain.connect(master);
+
+    osc.start(t);
+    osc.stop(t + dur + 0.02);
+  };
+
+  // 3 beeps escalating
+  beep(now + 0.00, 880, 0.18);
+  beep(now + 0.25, 988, 0.18);
+  beep(now + 0.50, 1108, 0.22);
+
+  // close context a bit later
+  setTimeout(() => ctx.close().catch(() => {}), 1200);
 }
 
 export default function App() {
@@ -50,6 +94,15 @@ export default function App() {
 
   // Winner
   const [winner, setWinner] = useState<"tripulacion" | "impostores" | null>(null);
+
+  // Discussion timer
+  const DURATION_OPTIONS = [30, 60, 90, 120, 180] as const;
+  const [discussionDuration, setDiscussionDuration] = useState<(typeof DURATION_OPTIONS)[number]>(
+    90,
+  );
+  const [timeLeft, setTimeLeft] = useState<number>(90);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const alarmedRef = useRef(false);
 
   const cleanPlayers = useMemo(
     () => players.map((p) => p.trim()).filter(Boolean),
@@ -89,30 +142,22 @@ export default function App() {
   function setUpNewGame() {
     const p = cleanPlayers;
 
-    // init alive status
     const aliveInit = p.map(() => true);
     setAlive(aliveInit);
 
-    // choose impostors among all players
     const idxs = shuffle(p.map((_, i) => i)).slice(0, impostorsCount);
     setImpostors(new Set(idxs));
 
-    // reset round counter
     setRound(1);
-
-    // reset winner
     setWinner(null);
 
-    // start first round
     startRoundWithState(aliveInit);
   }
 
   function startRoundWithState(aliveState: boolean[]) {
-    // choose new word each round
     const word = pickRandom(wordBank);
     setSecretWord(word);
 
-    // build reveal order only with alive players
     const order = cleanPlayers
       .map((_, i) => i)
       .filter((i) => aliveState[i]);
@@ -121,17 +166,20 @@ export default function App() {
     setRevealPos(0);
     setIsRevealed(false);
 
-    // reset vote/result
     setSelectedSuspect(null);
     setEjected(null);
     setLastEjectedWasImpostor(null);
+
+    // reset timer for new round discussion
+    setTimeLeft(discussionDuration);
+    setTimerRunning(false);
+    alarmedRef.current = false;
 
     setScreen("reveal");
   }
 
   function startNextRound() {
     setRound((r) => r + 1);
-    // use current alive state
     startRoundWithState(alive);
   }
 
@@ -154,17 +202,22 @@ export default function App() {
     setLastEjectedWasImpostor(null);
 
     setWinner(null);
+
+    setDiscussionDuration(90);
+    setTimeLeft(90);
+    setTimerRunning(false);
+    alarmedRef.current = false;
   }
 
   function goToVote() {
     setSelectedSuspect(null);
+    setTimerRunning(false);
     setScreen("vote");
   }
 
   function confirmVote() {
     if (selectedSuspect === null) return;
 
-    // Eject the selected suspect
     const idx = selectedSuspect;
     const wasImpostor = impostors.has(idx);
 
@@ -175,7 +228,6 @@ export default function App() {
     nextAlive[idx] = false;
     setAlive(nextAlive);
 
-    // Check win conditions AFTER ejection
     const nextAliveCount = countAlive(nextAlive);
     let nextAliveImpostors = 0;
     for (const imp of impostors) if (nextAlive[imp]) nextAliveImpostors++;
@@ -194,9 +246,40 @@ export default function App() {
       return;
     }
 
-    // otherwise continue
     setScreen("result");
   }
+
+  // Timer tick effect (only active on play screen and when running)
+  useEffect(() => {
+    if (screen !== "play") return;
+    if (!timerRunning) return;
+
+    const id = window.setInterval(() => {
+      setTimeLeft((t) => Math.max(0, t - 1));
+    }, 1000);
+
+    return () => window.clearInterval(id);
+  }, [screen, timerRunning]);
+
+  // Alarm effect when time reaches 0
+  useEffect(() => {
+    if (screen !== "play") return;
+    if (timeLeft !== 0) return;
+    if (alarmedRef.current) return;
+
+    alarmedRef.current = true;
+    setTimerRunning(false);
+
+    // vibration (mobile)
+    try {
+      navigator.vibrate?.([120, 80, 120, 80, 240]);
+    } catch {
+      // ignore
+    }
+
+    // sound
+    playAlarm().catch(() => {});
+  }, [screen, timeLeft]);
 
   // ---------- UI helpers ----------
   const Card = ({ children }: { children: React.ReactNode }) => (
@@ -237,6 +320,15 @@ export default function App() {
     return cleanPlayers.map((p, i) => ({ name: p, i, alive: alive[i] ?? false }));
   }, [cleanPlayers, alive]);
 
+  // Timer UI derived
+  const progress = useMemo(() => {
+    const total = discussionDuration;
+    if (total <= 0) return 0;
+    return Math.max(0, Math.min(1, timeLeft / total));
+  }, [discussionDuration, timeLeft]);
+
+  const urgent = timeLeft <= 10 && timeLeft > 0;
+
   return (
     <div style={{ minHeight: "100vh", padding: 22, display: "grid", placeItems: "center" }}>
       {screen === "home" && (
@@ -251,7 +343,7 @@ export default function App() {
             <Button
               onClick={() =>
                 alert(
-                  "Flujo:\n1) Configura jugadores\n2) Reparto (pasar el teléfono)\n3) Discusión\n4) Votación (abierta)\n5) Se expulsa y se evalúa victoria\n6) Si nadie gana, siguiente ronda",
+                  "Flujo:\n1) Configura jugadores\n2) Reparto (pasar el teléfono)\n3) Discusión con temporizador\n4) Votación (abierta)\n5) Se expulsa y se evalúa victoria\n6) Si nadie gana, siguiente ronda",
                 )
               }
             >
@@ -329,6 +421,39 @@ export default function App() {
             </Button>
           </div>
 
+          <label style={{ display: "block", marginBottom: 8, opacity: 0.9 }}>
+            Temporizador de discusión
+          </label>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+            {DURATION_OPTIONS.map((sec) => {
+              const selected = discussionDuration === sec;
+              return (
+                <button
+                  key={sec}
+                  type="button"
+                  onClick={() => {
+                    setDiscussionDuration(sec);
+                    setTimeLeft(sec);
+                    setTimerRunning(false);
+                    alarmedRef.current = false;
+                  }}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: selected
+                      ? "1px solid rgba(255,255,255,0.38)"
+                      : "1px solid rgba(255,255,255,0.14)",
+                    background: selected ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.25)",
+                    color: "inherit",
+                    cursor: "pointer",
+                  }}
+                >
+                  {sec >= 60 ? `${Math.round(sec / 60)} min` : `${sec}s`}
+                </button>
+              );
+            })}
+          </div>
+
           {!canStart && (
             <p style={{ margin: "0 0 12px", color: "#ffd6a5", opacity: 0.95 }}>
               Agrega al menos 3 nombres y asegúrate de que los impostores sean menos que los
@@ -403,6 +528,8 @@ export default function App() {
                   onClick={() => {
                     if (revealPos + 1 >= revealOrder.length) {
                       setScreen("play");
+                      // auto-start timer on entering discussion
+                      setTimerRunning(true);
                     } else {
                       setRevealPos((p) => p + 1);
                       setIsRevealed(false);
@@ -431,6 +558,67 @@ export default function App() {
       {screen === "play" && (
         <Card>
           <h2 style={{ margin: "0 0 8px" }}>Discusión — Ronda {round}</h2>
+
+          <div
+            style={{
+              padding: 14,
+              borderRadius: 16,
+              border: urgent
+                ? "1px solid rgba(255, 70, 70, 0.45)"
+                : "1px solid rgba(255,255,255,0.12)",
+              background: "rgba(0,0,0,0.25)",
+              marginBottom: 14,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+              <div>
+                <div style={{ opacity: 0.75, fontSize: 13 }}>Tiempo</div>
+                <div style={{ fontSize: 34, fontWeight: 900, color: urgent ? "#ff6b6b" : "white" }}>
+                  {formatMMSS(timeLeft)}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <Button onClick={() => setTimerRunning((r) => !r)}>
+                  {timerRunning ? "Pausar" : timeLeft === 0 ? "Reanudar" : "Reanudar"}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setTimeLeft(discussionDuration);
+                    setTimerRunning(false);
+                    alarmedRef.current = false;
+                  }}
+                >
+                  Reiniciar
+                </Button>
+              </div>
+            </div>
+
+            <div style={{ height: 10 }} />
+
+            <div
+              style={{
+                height: 10,
+                borderRadius: 999,
+                background: "rgba(255,255,255,0.10)",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${Math.round(progress * 100)}%`,
+                  background: urgent ? "rgba(255, 70, 70, 0.85)" : "rgba(120, 220, 255, 0.75)",
+                  transition: "width 0.35s linear",
+                }}
+              />
+            </div>
+
+            <GhostHint>
+              Cuando llegue a 0 suena alarma y vibra (si el dispositivo lo permite).
+            </GhostHint>
+          </div>
+
           <p style={{ margin: "0 0 14px", opacity: 0.85 }}>
             Hablen por turnos describiendo. Cuando estén listos, vayan a votación.
           </p>
@@ -558,14 +746,7 @@ export default function App() {
           </details>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Button
-              onClick={() => {
-                // restart with same players & impostor count (new impostors are re-picked)
-                setUpNewGame();
-              }}
-            >
-              Jugar otra (mismos nombres)
-            </Button>
+            <Button onClick={setUpNewGame}>Jugar otra (mismos nombres)</Button>
             <Button onClick={() => setScreen("setup")}>Cambiar configuración</Button>
             <Button onClick={resetAll}>Home</Button>
           </div>
