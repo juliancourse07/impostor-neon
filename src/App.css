@@ -113,10 +113,10 @@ body::after {
 
 @media (max-width: 520px) {
   #root {
-    padding: 1rem;
+    padding: 12px;
   }
   .app-shell {
-    padding: 14px;
+    padding: 12px;
     place-items: start center;
   }
 }
@@ -155,15 +155,7 @@ button:active:not(:disabled) {
   background: rgba(89, 243, 255, 0.25);
 }
 
-/* Optional: make numbers stable if you ever show timers elsewhere */
-.tabular {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
-}
-
-/* ---------- MONO BANDIDO "club neon" mode ----------
-   We’ll toggle this by adding/removing a class on <body>: body.mono-bandido
-*/
+/* ---------- MONO BANDIDO "club neon" mode ---------- */
 body.mono-bandido {
   background: radial-gradient(1100px 800px at 20% 18%, rgba(255, 79, 216, 0.18), transparent 60%),
     radial-gradient(900px 700px at 85% 25%, rgba(180, 75, 255, 0.18), transparent 55%),
@@ -171,7 +163,6 @@ body.mono-bandido {
     linear-gradient(180deg, #070611, #0a0716);
 }
 
-/* More "hot" vibe: slow pulse + richer haze */
 body.mono-bandido::before {
   background: radial-gradient(circle at 24% 18%, rgba(255, 79, 216, 0.18), transparent 40%),
     radial-gradient(circle at 72% 26%, rgba(180, 75, 255, 0.18), transparent 42%),
@@ -210,15 +201,6 @@ body.mono-bandido::after {
   }
 }
 
-/* Extra: make buttons feel more "club" when in Mono Bandido */
-body.mono-bandido button:hover:not(:disabled) {
-  box-shadow:
-    0 12px 34px rgba(0, 0, 0, 0.35),
-    0 0 26px rgba(255, 79, 216, 0.22),
-    0 0 48px rgba(180, 75, 255, 0.16);
-  filter: saturate(1.08);
-}
-
 /* ------------- CARD ENHANCEMENTS ------------- */
 .card {
   position: relative;
@@ -234,7 +216,6 @@ body.mono-bandido button:hover:not(:disabled) {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.9;
   background:
     radial-gradient(circle, rgba(89, 243, 255, 0.6) 1px, transparent 1.2px) 0 0 / 34px 34px,
     radial-gradient(circle, rgba(180, 75, 255, 0.45) 1px, transparent 1.2px) 12px 14px / 44px 44px,
@@ -251,31 +232,16 @@ body.mono-bandido button:hover:not(:disabled) {
   z-index: 0;
 }
 
+/* IMPORTANT: stop flicker/titileo (typing + timer) */
 .screen {
-  animation: screenIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
   position: relative;
   z-index: 1;
-}
-
-@keyframes screenIn {
-  from {
-    opacity: 0;
-    transform: translateY(14px) scale(0.982);
-    filter: blur(2px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0px);
-  }
+  animation: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   body::before,
   body::after {
-    animation: none !important;
-  }
-  .screen {
     animation: none !important;
   }
 }
@@ -292,26 +258,11 @@ body.mono-bandido button:hover:not(:disabled) {
   border-radius: 999px;
   border: 1px solid rgba(201, 109, 255, 0.38);
   background: rgba(0, 0, 0, 0.42);
-  box-shadow:
-    0 0 24px rgba(180, 75, 255, 0.18),
-    0 0 54px rgba(255, 79, 216, 0.12);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   font-weight: 800;
   letter-spacing: 0.2px;
   z-index: 50;
-  animation: mbGlow 2.6s ease-in-out infinite alternate;
-}
-
-@keyframes mbGlow {
-  from {
-    filter: saturate(1.05);
-    transform: translateY(0);
-  }
-  to {
-    filter: saturate(1.25);
-    transform: translateY(-1px);
-  }
 }
 
 .urgente-badge {
@@ -326,18 +277,6 @@ body.mono-bandido button:hover:not(:disabled) {
   font-weight: 900;
   letter-spacing: 0.6px;
   margin: 0 auto 10px;
-  animation: urgentPulse 0.9s ease-in-out infinite alternate;
-}
-
-@keyframes urgentPulse {
-  from {
-    transform: scale(1);
-    filter: saturate(1.05);
-  }
-  to {
-    transform: scale(1.03);
-    filter: saturate(1.25);
-  }
 }
 
 /* ------------- VOTE UI ------------- */
@@ -378,7 +317,7 @@ body.mono-bandido button:hover:not(:disabled) {
   transition: width 260ms ease;
 }
 
-/* ------------- HERO + MODAL + RESPONSIVE ------------- */
+/* ------------- HERO ------------- */
 .hero-card {
   text-align: left;
 }
@@ -401,7 +340,6 @@ body.mono-bandido button:hover:not(:disabled) {
   margin-bottom: 10px;
 }
 
-/* Título más "chill": gradiente + glow */
 .hero-title {
   font-size: 52px;
   line-height: 1.03;
@@ -415,7 +353,6 @@ body.mono-bandido button:hover:not(:disabled) {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  text-shadow: 0 0 26px rgba(89, 243, 255, 0.10);
 }
 
 .hero-subtitle {
@@ -432,7 +369,6 @@ body.mono-bandido button:hover:not(:disabled) {
   margin-bottom: 12px;
 }
 
-/* Botones base: centrados, sin cortarse feo */
 .btn-primary,
 .btn-ghost {
   border-radius: 14px;
@@ -506,6 +442,7 @@ body.mono-bandido button:hover:not(:disabled) {
   }
 }
 
+/* Banner/marquee */
 .hero-marquee {
   overflow: hidden;
   border-top: 1px solid rgba(255, 255, 255, 0.10);
@@ -540,92 +477,7 @@ body.mono-bandido button:hover:not(:disabled) {
   }
 }
 
-/* ------------------------------------------
-   FINAL FIX (Mobile)
-   - Home: buttons reachable (auto scroll)
-   - Setup: first player input never stuck
------------------------------------------- */
-@media (max-width: 520px) {
-  /* HOME: si el contenido no cabe, deja scrollear el card */
-  .hero-card {
-    max-height: calc(100dvh - 32px);
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 12px;
-  }
-
-  .hero {
-    grid-template-columns: 1fr;
-    gap: 10px;
-    text-align: left;
-  }
-
-  .hero-kicker {
-    font-size: 11px;
-    margin-bottom: 6px;
-  }
-
-  .hero-title {
-    font-size: 36px;
-    margin-bottom: 6px;
-  }
-
-  .hero-subtitle {
-    font-size: 13px;
-    line-height: 1.35;
-    margin-bottom: 10px;
-  }
-
-  .hero-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
-
-  .btn-primary,
-  .btn-ghost {
-    width: 100%;
-    padding: 12px 12px;
-    min-height: 44px;
-  }
-
-  .hero-right {
-    min-height: 150px;
-  }
-
-  .hero-emblem svg {
-    width: 140px;
-    height: 140px;
-  }
-
-  .hero-marquee {
-    padding-top: 8px;
-    margin-top: 10px;
-  }
-
-  .hero-marquee-track span {
-    font-size: 11px;
-    padding: 5px 9px;
-  }
-
-  /* SETUP: el card debe poder scrollear completo */
-  .setup-card {
-    max-height: calc(100dvh - 32px);
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 16px;
-  }
-
-  /* en setup, evita que el primer input quede pegado arriba */
-  .players-scroll {
-    max-height: none; /* quitamos el scroll interno */
-    overflow: visible; /* deja que el scroll lo maneje el card */
-    padding-right: 0;
-  }
-}
-
-/* ------------- MODAL + SETUP HELPERS ------------- */
+/* ------------- MODAL + SETUP ------------- */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -645,18 +497,6 @@ body.mono-bandido button:hover:not(:disabled) {
   background: rgba(0, 0, 0, 0.48);
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
   overflow: hidden;
-  animation: modalIn 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-@keyframes modalIn {
-  from {
-    opacity: 0;
-    transform: translateY(14px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 .modal-head {
@@ -771,4 +611,96 @@ body.mono-bandido button:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.12);
   border-radius: 999px;
   border: 2px solid rgba(0, 0, 0, 0.35);
+}
+
+/* =======================================================
+   MOBILE (HOME + SETUP) – NO SCROLL ON HOME, LESS SPACE
+   ======================================================= */
+@media (max-width: 520px) {
+  /* reduce espacio general */
+  #root,
+  .app-shell {
+    padding: 10px;
+  }
+
+  /* card compacto */
+  .card {
+    width: 100% !important;
+    padding: 12px !important;
+  }
+
+  /* HOME: sin scroll y sin logo grande para que quepa TODO */
+  .hero-card {
+    overflow: hidden;
+    max-height: none;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .hero-right {
+    display: none; /* clave para que no toque scrollear */
+  }
+
+  .hero-kicker {
+    font-size: 10px;
+    margin-bottom: 6px;
+  }
+
+  .hero-title {
+    font-size: 34px;
+    margin-bottom: 6px;
+  }
+
+  .hero-subtitle {
+    font-size: 13px;
+    line-height: 1.35;
+    margin-bottom: 10px;
+
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .hero-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .btn-primary,
+  .btn-ghost {
+    width: 100%;
+    min-height: 40px;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .hero-marquee {
+    padding-top: 8px;
+    margin-top: 10px;
+  }
+
+  .hero-marquee-track span {
+    font-size: 11px;
+    padding: 5px 9px;
+  }
+
+  /* SETUP: scroll de la tarjeta completa (nombres siempre accesibles) */
+  .setup-card {
+    max-height: calc(100dvh - 20px);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 16px;
+  }
+
+  .players-scroll {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
 }
