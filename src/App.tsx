@@ -498,11 +498,39 @@ export default function App() {
   const [monoBandidoEnabled, setMonoBandidoEnabled] = useState(false);
   const [bandidoIntensity, setBandidoIntensity] = useState<BandidoIntensity>("medio");
 
+  // How-to modal
+  const [howToOpen, setHowToOpen] = useState(false);
+
   // ✅ Theme: activate "Mono Bandido" club-neon look by toggling a body class
   useEffect(() => {
     document.body.classList.toggle("mono-bandido", monoBandidoEnabled);
     return () => document.body.classList.remove("mono-bandido");
   }, [monoBandidoEnabled]);
+
+  // Interactive background (mouse spotlight) via CSS vars
+  useEffect(() => {
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduce) return;
+
+    const setVars = (x: number, y: number) => {
+      const mx = Math.round((x / window.innerWidth) * 1000) / 1000;
+      const my = Math.round((y / window.innerHeight) * 1000) / 1000;
+      document.documentElement.style.setProperty("--mx", String(mx));
+      document.documentElement.style.setProperty("--my", String(my));
+    };
+
+    // default center
+    setVars(window.innerWidth / 2, window.innerHeight / 2);
+
+    const onMove = (e: PointerEvent) => setVars(e.clientX, e.clientY);
+    window.addEventListener("pointermove", onMove, { passive: true });
+
+    return () => window.removeEventListener("pointermove", onMove);
+  }, []);
 
   // If game ends, show result first (so penalty shows), then allow "Ver ganador"
   const [pendingGameOver, setPendingGameOver] = useState<"tripulacion" | "impostores" | null>(null);
@@ -554,14 +582,10 @@ export default function App() {
   const alarmedRef = useRef(false);
   const lastTickedRef = useRef<number | null>(null);
 
-
-
   const cleanPlayers = useMemo(() => players.map((p) => p.trim()).filter(Boolean), [players]);
 
   const canStart =
-    cleanPlayers.length >= 3 &&
-    impostorsCount >= 1 &&
-    impostorsCount < cleanPlayers.length;
+    cleanPlayers.length >= 3 && impostorsCount >= 1 && impostorsCount < cleanPlayers.length;
 
   const aliveCount = useMemo(() => countAlive(alive), [alive]);
 
@@ -571,10 +595,7 @@ export default function App() {
     return c;
   }, [alive, impostors]);
 
-  const aliveCrewCount = useMemo(
-    () => aliveCount - aliveImpostorsCount,
-    [aliveCount, aliveImpostorsCount],
-  );
+  const aliveCrewCount = useMemo(() => aliveCount - aliveImpostorsCount, [aliveCount, aliveImpostorsCount]);
 
   const effectivePack: WordPackKey = monoBandidoEnabled ? "mono_bandido" : pack;
   const packInfo = WORD_PACKS[effectivePack];
@@ -651,6 +672,8 @@ export default function App() {
     setMonoBandidoEnabled(false);
     setBandidoIntensity("medio");
     setPendingGameOver(null);
+
+    setHowToOpen(false);
 
     setVoteCounts([]);
     setFirstVoterFor({});
@@ -818,9 +841,9 @@ export default function App() {
   }, [screen, timeLeft]);
 
   // UI helpers
-  const Card = ({ children }: { children: React.ReactNode }) => (
+  const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => (
     <div
-      className="card"
+      className={`card ${className ?? ""}`}
       style={{
         width: "100%",
         maxWidth: 720,
@@ -866,18 +889,19 @@ export default function App() {
   const urgent = timeLeft <= 10 && timeLeft > 0;
 
   return (
-    <div style={{ minHeight: "100vh", padding: 22, display: "grid", placeItems: "center" }}>
+    <div className="app-shell">
+      {/* Mono Bandido badge fixed */}
       {monoBandidoEnabled && (
         <div className="mb-badge">
-          <svg
-            width="26"
-            height="26"
-            viewBox="0 0 26 26"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <circle cx="13" cy="13" r="12" stroke="#c96dff" strokeWidth="1.5" fill="rgba(180,75,255,0.12)" />
-            {/* Bandit mask curve — arcs across the middle of the circle */}
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle
+              cx="13"
+              cy="13"
+              r="12"
+              stroke="#c96dff"
+              strokeWidth="1.5"
+              fill="rgba(180,75,255,0.12)"
+            />
             <path
               d="M5.5 10.5 Q13 7.5 20.5 10.5"
               stroke="#c96dff"
@@ -901,70 +925,248 @@ export default function App() {
           Mono Bandido
         </div>
       )}
-      {screen === "home" && (
-        <Card>
-          <h1 style={{ fontSize: 44, margin: "0 0 6px" }}>impostor-neon</h1>
-          <p style={{ opacity: 0.85, margin: "0 0 18px" }}>
-            Modo 1 dispositivo: se pasan el teléfono para revelar su rol.
-          </p>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Button onClick={() => setScreen("setup")}>Crear partida</Button>
-            <Button
-              onClick={() =>
-                alert(
-                  "Flujo:\n1) Configura jugadores\n2) Elige categoría (o Mono Bandido)\n3) Reparto\n4) Discusión con temporizador\n5) Votación por turnos\n6) Resultado + penitencia\n7) Siguiente ronda",
-                )
-              }
-            >
-              Cómo jugar
-            </Button>
+      {/* How-to modal */}
+      {howToOpen && (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Cómo jugar"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setHowToOpen(false);
+          }}
+        >
+          <div className="modal">
+            <div className="modal-head">
+              <div className="modal-title">Cómo jugar</div>
+              <button className="icon-btn" type="button" onClick={() => setHowToOpen(false)} aria-label="Cerrar">
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="howto-steps">
+                <div className="howto-step">
+                  <div className="howto-ico">①</div>
+                  <div>
+                    <div className="howto-step-title">Configura</div>
+                    <div className="howto-step-text">
+                      Agrega jugadores, impostores y categoría (o activa Mono Bandido).
+                    </div>
+                  </div>
+                </div>
+
+                <div className="howto-step">
+                  <div className="howto-ico">②</div>
+                  <div>
+                    <div className="howto-step-title">Revela tu rol</div>
+                    <div className="howto-step-text">
+                      Pásense el teléfono. Cada quien toca para ver su rol y lo vuelve a ocultar.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="howto-step">
+                  <div className="howto-ico">③</div>
+                  <div>
+                    <div className="howto-step-title">Discusión</div>
+                    <div className="howto-step-text">
+                      Describan la palabra sin decirla. El impostor improvisa y se camufla.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="howto-step">
+                  <div className="howto-ico">④</div>
+                  <div>
+                    <div className="howto-step-title">Votación</div>
+                    <div className="howto-step-text">
+                      Votan por turnos. La app lleva el progreso (sin revelar quién votó a quién).
+                    </div>
+                  </div>
+                </div>
+
+                <div className="howto-step">
+                  <div className="howto-ico">⑤</div>
+                  <div>
+                    <div className="howto-step-title">Resultado</div>
+                    <div className="howto-step-text">
+                      Si está activo Mono Bandido, hay penitencia según quién fue expulsado.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-actions">
+                <button className="btn-primary" type="button" onClick={() => setHowToOpen(false)}>
+                  Listo, a jugar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {screen === "home" && (
+        <Card className="hero-card">
+          <div className="hero">
+            <div className="hero-left">
+              <div className="hero-kicker">PARTY • 1 DISPOSITIVO • NEÓN</div>
+              <h1 className="hero-title">Impostor Neón</h1>
+              <p className="hero-subtitle">
+                Se pasan el teléfono para revelar rol. Hablen, engañen, voten. El caos es parte del juego.
+              </p>
+
+              <div className="hero-actions">
+                <button className="btn-primary" type="button" onClick={() => setScreen("setup")}>
+                  Crear partida
+                </button>
+                <button className="btn-ghost" type="button" onClick={() => setHowToOpen(true)}>
+                  Cómo jugar
+                </button>
+              </div>
+
+              <div className="hero-marquee" aria-hidden="true">
+                <div className="hero-marquee-track">
+                  <span>IMPOSTOR</span>
+                  <span>NEÓN</span>
+                  <span>VOTACIÓN</span>
+                  <span>TIMER</span>
+                  <span>MONO BANDIDO</span>
+                  <span>FIESTA</span>
+                  <span>CAOS</span>
+                  <span>IMPOSTOR</span>
+                  <span>NEÓN</span>
+                  <span>VOTACIÓN</span>
+                  <span>TIMER</span>
+                  <span>MONO BANDIDO</span>
+                  <span>FIESTA</span>
+                  <span>CAOS</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="hero-right" aria-hidden="true">
+              <div className="hero-emblem">
+                <svg viewBox="0 0 220 220" width="220" height="220" role="img" aria-label="">
+                  <defs>
+                    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0" stopColor="#59f3ff" stopOpacity="0.95" />
+                      <stop offset="0.55" stopColor="#b44bff" stopOpacity="0.95" />
+                      <stop offset="1" stopColor="#ff4fd8" stopOpacity="0.95" />
+                    </linearGradient>
+                    <filter id="glow">
+                      <feGaussianBlur stdDeviation="3" result="b" />
+                      <feColorMatrix
+                        in="b"
+                        type="matrix"
+                        values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.9 0"
+                      />
+                      <feMerge>
+                        <feMergeNode />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+
+                  <circle cx="110" cy="110" r="86" stroke="url(#g1)" strokeWidth="3.2" fill="rgba(255,255,255,0.03)" />
+                  <path
+                    d="M50 96 Q110 60 170 96"
+                    stroke="url(#g1)"
+                    strokeWidth="5"
+                    strokeLinecap="round"
+                    fill="none"
+                    opacity="0.9"
+                    filter="url(#glow)"
+                  />
+                  <path
+                    d="M70 105 Q110 86 150 105"
+                    stroke="rgba(255,255,255,0.55)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    fill="none"
+                    opacity="0.9"
+                  />
+                  <text
+                    x="110"
+                    y="140"
+                    textAnchor="middle"
+                    fontSize="40"
+                    fontWeight="900"
+                    fill="url(#g1)"
+                    fontFamily="ui-sans-serif, system-ui, sans-serif"
+                    filter="url(#glow)"
+                  >
+                    MB
+                  </text>
+                  <text
+                    x="110"
+                    y="162"
+                    textAnchor="middle"
+                    fontSize="10"
+                    letterSpacing="3"
+                    fontWeight="700"
+                    fill="rgba(255,255,255,0.65)"
+                    fontFamily="ui-sans-serif, system-ui, sans-serif"
+                  >
+                    MONO BANDIDO
+                  </text>
+                </svg>
+              </div>
+              <div className="hero-orbit" />
+            </div>
           </div>
         </Card>
       )}
 
       {screen === "setup" && (
-        <Card>
-          <h2 style={{ margin: "0 0 10px" }}>Configurar partida</h2>
+        <Card className="setup-card">
+          <div className="card-header">
+            <h2 style={{ margin: "0 0 10px" }}>Configurar partida</h2>
+            <button className="chip" type="button" onClick={() => setHowToOpen(true)}>
+              Cómo jugar
+            </button>
+          </div>
 
-          <label style={{ display: "block", marginBottom: 8, opacity: 0.9 }}>
-            Jugadores (mínimo 3)
-          </label>
+          <label style={{ display: "block", marginBottom: 8, opacity: 0.9 }}>Jugadores (mínimo 3)</label>
 
-          <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
-            {players.map((value, i) => (
-              <div key={i} style={{ display: "flex", gap: 8 }}>
-                <input
-                  ref={(el) => {
-                    playerInputRefs.current[i] = el;
-                  }}
-                  value={value}
-                  onChange={(e) => {
-                    const next = [...players];
-                    next[i] = e.target.value;
-                    setPlayers(next);
-                    queueMicrotask(() => playerInputRefs.current[i]?.focus());
-                  }}
-                  placeholder={`Jugador ${i + 1}`}
-                  style={{
-                    flex: 1,
-                    padding: "10px 12px",
-                    borderRadius: 12,
-                    border: "1px solid rgba(255,255,255,0.14)",
-                    background: "rgba(0,0,0,0.25)",
-                    color: "inherit",
-                  }}
-                />
-                <Button
-                  type="button"
-                  onClick={() => setPlayers((p) => p.filter((_, idx) => idx !== i))}
-                  disabled={players.length <= 1}
-                  title="Eliminar"
-                >
-                  ✕
-                </Button>
-              </div>
-            ))}
+          <div className="players-scroll">
+            <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
+              {players.map((value, i) => (
+                <div key={i} style={{ display: "flex", gap: 8 }}>
+                  <input
+                    ref={(el) => {
+                      playerInputRefs.current[i] = el;
+                    }}
+                    value={value}
+                    onChange={(e) => {
+                      const next = [...players];
+                      next[i] = e.target.value;
+                      setPlayers(next);
+                      queueMicrotask(() => playerInputRefs.current[i]?.focus());
+                    }}
+                    placeholder={`Jugador ${i + 1}`}
+                    style={{
+                      flex: 1,
+                      padding: "10px 12px",
+                      borderRadius: 12,
+                      border: "1px solid rgba(255,255,255,0.14)",
+                      background: "rgba(0,0,0,0.25)",
+                      color: "inherit",
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => setPlayers((p) => p.filter((_, idx) => idx !== i))}
+                    disabled={players.length <= 1}
+                    title="Eliminar"
+                  >
+                    ✕
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
@@ -1048,9 +1250,7 @@ export default function App() {
             )}
           </div>
 
-          <label style={{ display: "block", marginBottom: 8, opacity: 0.9 }}>
-            Categoría de palabras
-          </label>
+          <label style={{ display: "block", marginBottom: 8, opacity: 0.9 }}>Categoría de palabras</label>
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
             {PACK_KEYS.filter((k) => k !== "mono_bandido").map((k) => {
@@ -1101,9 +1301,7 @@ export default function App() {
             Pack seleccionado: <strong>{packInfo.label}</strong> — {packCount} palabras
           </div>
 
-          <label style={{ display: "block", marginBottom: 8, opacity: 0.9 }}>
-            Temporizador de discusión
-          </label>
+          <label style={{ display: "block", marginBottom: 8, opacity: 0.9 }}>Temporizador de discusión</label>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
             {DURATION_OPTIONS.map((sec) => {
               const selected = discussionDuration === sec;
@@ -1137,8 +1335,7 @@ export default function App() {
 
           {!canStart && (
             <p style={{ margin: "0 0 12px", color: "#ffd6a5", opacity: 0.95 }}>
-              Agrega al menos 3 nombres y asegúrate de que los impostores sean menos que los
-              jugadores.
+              Agrega al menos 3 nombres y asegúrate de que los impostores sean menos que los jugadores.
             </p>
           )}
 
@@ -1175,8 +1372,7 @@ export default function App() {
           )}
 
           <p style={{ margin: "0 0 16px", opacity: 0.85 }}>
-            Vivos: <strong>{aliveCount}</strong> (Tripulación {aliveCrewCount} / Impostores{" "}
-            {aliveImpostorsCount})
+            Vivos: <strong>{aliveCount}</strong> (Tripulación {aliveCrewCount} / Impostores {aliveImpostorsCount})
           </p>
 
           {revealOrder.length > 0 && (
@@ -1194,9 +1390,7 @@ export default function App() {
                   marginBottom: 14,
                 }}
               >
-                <div style={{ fontSize: 18, opacity: 0.9, marginBottom: 8 }}>
-                  Pásale el teléfono a:
-                </div>
+                <div style={{ fontSize: 18, opacity: 0.9, marginBottom: 8 }}>Pásale el teléfono a:</div>
                 <div style={{ fontSize: 28, fontWeight: 700 }}>
                   {cleanPlayers[revealOrder[revealPos]]}
                 </div>
@@ -1289,9 +1483,7 @@ export default function App() {
             style={{
               padding: 14,
               borderRadius: 16,
-              border: urgent
-                ? "1px solid rgba(255, 70, 70, 0.45)"
-                : "1px solid rgba(255,255,255,0.12)",
+              border: urgent ? "1px solid rgba(255, 70, 70, 0.45)" : "1px solid rgba(255,255,255,0.12)",
               background: "rgba(0,0,0,0.25)",
               marginBottom: 14,
             }}
@@ -1317,9 +1509,7 @@ export default function App() {
               </div>
 
               <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                <Button onClick={() => setTimerRunning((r) => !r)}>
-                  {timerRunning ? "Pausar" : "Reanudar"}
-                </Button>
+                <Button onClick={() => setTimerRunning((r) => !r)}>{timerRunning ? "Pausar" : "Reanudar"}</Button>
                 <Button
                   onClick={() => {
                     setTimeLeft(discussionDuration);
@@ -1335,14 +1525,7 @@ export default function App() {
 
             <div style={{ height: 10 }} />
 
-            <div
-              style={{
-                height: 10,
-                borderRadius: 999,
-                background: "rgba(255,255,255,0.10)",
-                overflow: "hidden",
-              }}
-            >
+            <div style={{ height: 10, borderRadius: 999, background: "rgba(255,255,255,0.10)", overflow: "hidden" }}>
               <div
                 style={{
                   height: "100%",
@@ -1381,9 +1564,7 @@ export default function App() {
       {screen === "vote" && (
         <Card>
           <h2 style={{ margin: "0 0 8px" }}>Votación</h2>
-          <p style={{ margin: "0 0 12px", opacity: 0.85 }}>
-            Votan por turnos. Pásense el celular.
-          </p>
+          <p style={{ margin: "0 0 12px", opacity: 0.85 }}>Votan por turnos. Pásense el celular.</p>
 
           {(() => {
             const aliveVoters = cleanPlayers.map((_, i) => i).filter((i) => alive[i]);
@@ -1397,8 +1578,7 @@ export default function App() {
                     <span>Listo: ya votaron todos.</span>
                   ) : (
                     <>
-                      Turno de:{" "}
-                      <span className="vote-turn-name">{cleanPlayers[currentVoter]}</span>
+                      Turno de: <span className="vote-turn-name">{cleanPlayers[currentVoter]}</span>
                     </>
                   )}
                 </div>
@@ -1478,9 +1658,7 @@ export default function App() {
               <p style={{ margin: "0 0 10px", opacity: 0.9 }}>
                 Expulsado: <strong>{cleanPlayers[ejected]}</strong>
               </p>
-              <p style={{ margin: "0 0 14px", opacity: 0.85 }}>
-                {lastEjectedWasImpostor ? "Era IMPOSTOR." : "No era impostor."}
-              </p>
+              <p style={{ margin: "0 0 14px", opacity: 0.85 }}>{lastEjectedWasImpostor ? "Era IMPOSTOR." : "No era impostor."}</p>
             </>
           )}
 
@@ -1566,11 +1744,7 @@ export default function App() {
           >
             <div style={{ opacity: 0.8, fontSize: 13 }}>Ganador:</div>
             <div style={{ fontSize: 24, fontWeight: 900 }}>
-              {winner === "tripulacion"
-                ? "TRIPULACIÓN"
-                : winner === "impostores"
-                  ? "IMPOSTORES"
-                  : "-"}
+              {winner === "tripulacion" ? "TRIPULACIÓN" : winner === "impostores" ? "IMPOSTORES" : "-"}
             </div>
           </div>
 
