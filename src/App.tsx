@@ -1068,7 +1068,8 @@ export default function App() {
               <div className="hero-kicker">PARTY • 1 DISPOSITIVO • NEÓN</div>
               <h1 className="hero-title">Impostor Neón</h1>
               <p className="hero-subtitle">
-                Engañen el caos es parte del juego no sean niñas.
+                Hablen, engañen, voten. 
+                El caos es parte del juego no sean niñas.
               </p>
 
               <div className="hero-actions">
@@ -1076,7 +1077,7 @@ export default function App() {
                   Crear partida
                 </button>
                 <button className="btn-ghost" type="button" onClick={() => setHowToOpen(true)}>
-                  Cómo jugar para que no te hagas preguntas como pendejo
+                  Cómo jugar Pendejo
                 </button>
                   <button className="btn-ghost sound-toggle" type="button" onClick={toggleLaugh}>
                  {laughOn ? "🔊 Risa ON" : "🔈 Risa OFF"}
