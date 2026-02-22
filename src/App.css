@@ -296,7 +296,7 @@ body.mono-bandido::after {
 .vote-progress-track {
   height: 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.1);
   overflow: hidden;
 }
 
@@ -435,7 +435,7 @@ body.mono-bandido::after {
 /* Banner/marquee */
 .hero-marquee {
   overflow: hidden;
-  border-top: 1px solid rgba(255, 255, 255, 0.10);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding-top: 10px;
   margin-top: 10px;
   opacity: 0.75;
@@ -454,7 +454,7 @@ body.mono-bandido::after {
   letter-spacing: 2px;
   padding: 6px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(0, 0, 0, 0.18);
 }
 
@@ -494,7 +494,7 @@ body.mono-bandido::after {
   align-items: center;
   justify-content: space-between;
   padding: 14px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .modal-title {
@@ -528,7 +528,7 @@ body.mono-bandido::after {
   gap: 10px;
   padding: 12px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -542,7 +542,7 @@ body.mono-bandido::after {
   color: rgba(89, 243, 255, 0.95);
   border: 1px solid rgba(89, 243, 255, 0.22);
   background: rgba(89, 243, 255, 0.08);
-  box-shadow: 0 0 18px rgba(89, 243, 255, 0.10);
+  box-shadow: 0 0 18px rgba(89, 243, 255, 0.1);
 }
 
 .howto-step-title {
@@ -704,8 +704,8 @@ body.mono-bandido::after {
 
     color: rgba(201, 109, 255, 0.95);
     background:
-      radial-gradient(circle at 30% 30%, rgba(89, 243, 255, 0.30), transparent 58%),
-      radial-gradient(circle at 70% 70%, rgba(255, 79, 216, 0.20), transparent 58%),
+      radial-gradient(circle at 30% 30%, rgba(89, 243, 255, 0.3), transparent 58%),
+      radial-gradient(circle at 70% 70%, rgba(255, 79, 216, 0.2), transparent 58%),
       rgba(0, 0, 0, 0.22);
 
     border: 1px solid rgba(201, 109, 255, 0.35);
@@ -804,21 +804,19 @@ body.mono-bandido::after {
     padding-bottom: 170px; /* ajusta: 150-190 si quieres */
   }
 
-  /* GIF abajo */
+  /* GIF abajo (AHORA ES <img>, NO background) */
   .party-mascot {
     position: absolute;
     left: 50%;
     bottom: 10px;
     transform: translateX(-50%);
     width: min(190px, 62vw);
-    aspect-ratio: 1 / 1;
-    pointer-events: none;
-    z-index: 3;
+    height: auto;
+    display: block;
+    object-fit: contain;
 
-    background-image: url("/party-monkey.gif");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: contain;
+    pointer-events: none;
+    z-index: 20 !important;
 
     filter: drop-shadow(0 0 14px rgba(89, 243, 255, 0.16))
       drop-shadow(0 0 22px rgba(180, 75, 255, 0.14))
@@ -866,7 +864,7 @@ body.mono-bandido::after {
     50% {
       transform: translateY(-1px);
       box-shadow:
-        0 0 18px rgba(89, 243, 255, 0.20),
+        0 0 18px rgba(89, 243, 255, 0.2),
         0 0 28px rgba(180, 75, 255, 0.14);
       filter: saturate(1.25);
       opacity: 1;
@@ -902,6 +900,6 @@ body.mono-bandido::after {
   .party-mascot {
     z-index: 20 !important;
     height: auto;
-    min-height: 140px; /* fallback si aspect-ratio falla */
+    min-height: 140px; /* fallback si por algo no calcula altura */
   }
 }
