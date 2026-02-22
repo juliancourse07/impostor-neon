@@ -1047,11 +1047,12 @@ export default function App() {
                   <span>NEÓN</span>
                   <span>VOTACIÓN</span>
                   <span>TIMER</span>
-                  <span>MONO BANDIDO</span>
+                  <span>MONO BANDIDO</span>julian coronado gilmatias
                   <span>FIESTA</span>
                   <span>CAOS</span>
                 </div>
               </div>
+            <div className="party-mascot" aria-hidden="true" />
             </div>
 
             <div className="hero-right" aria-hidden="true">
