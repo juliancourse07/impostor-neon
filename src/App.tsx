@@ -463,16 +463,16 @@ const PUNISHMENTS_MEDIO: BandidoPunishment[] = [
 ];
 
 const PUNISHMENTS_SALVAJE: BandidoPunishment[] = [
-  { title: "BAILE 15s", text: "Baila 15s. (Perreo permitido si el grupo quiere)." },
-  { title: "KARAOKE 15s", text: "Canta 15 segundos como si estuvieras en un concierto." },
-  { title: "FREESTYLE 12s", text: "Improvisa 12s de rap sobre: 'fiesta y caos'." },
-  { title: "IMITACIÓN PRO", text: "Imita a un famoso o a alguien del grupo 15s (sin insultar)." },
-  { title: "NO TE RÍAS", text: "Reto: 25 segundos sin reír. Si fallas, repites 10s." },
-  { title: "MODO ROBOT", text: "En la próxima ronda, habla como robot en tu primer turno." },
-  { title: "MODO TELENOVELA", text: "Di una frase dramática 15s (con mano en la frente)." },
-  { title: "GRITO DE GUERRA", text: "Inventa un grito de guerra del grupo y hazlo 2 veces." },
-  { title: "VERDAD POTENTE", text: "Responde: ¿cuál fue tu peor oso en una fiesta? (corto)." },
-  { title: "POSE + FOTO", text: "Pose de portada 5s. Foto opcional (si todos quieren)." },
+  { title: "PERREO 15s", text: "Baila 15s. (Perreo permitido si el grupo quiere)." },
+  { title: "CHUPA UNA PARTE DEL CUERPO DEL QUE ELIJAN LOS WINNERS 15s", text: "Lame algo no seas perra." },
+  { title: "PELA ESAS NALGAS NEN@", text: "Pelalo y daja que lo toquen 2 ganadores'." },
+  { title: "GIME SI ERES PERRA O SEDUCE A UNA NENA PUTO", text: "Hazlo durante 10 segundos cachond@ (sin insultar)." },
+  { title: "CUENTA UNA HISTORIA OBSENA Y NO MIENTAS GAY", text: "Reto: 25 segundos sin reír. Si fallas, repites 10s." },
+  { title: "MUESTRALE UNA PARTE INTIMA A ALGUNO DE LOS WINNER", text: "Si se ponen pendejos y todos quieren ver morbosos hagan un sorteo." },
+  { title: "BESA A ALGUIEN DE OTRO SEXO AQUI NO APOYAMOS LAS LOCAS", text: "Besa a alguien de sexo opuesto, al que digan los Winners." },
+  { title: "SHOT POR HOMOSEXUAL", text: "Toma un shot sin hacer caras o repite mkon." },
+  { title: "VERDAD POTENTE", text: "Responde: ¿Te gusta alguien del grupo? (corto)." },
+  { title: "RECREA TU POSE SEXUAL FAVORITA CON ALGUIEN DEL GRUPO", text: "Lucete y muestra tus trucos." },
 ];
 
 function pickPunishment(intensity: BandidoIntensity) {
@@ -1068,7 +1068,7 @@ export default function App() {
               <div className="hero-kicker">PARTY • 1 DISPOSITIVO • NEÓN</div>
               <h1 className="hero-title">Impostor Neón</h1>
               <p className="hero-subtitle">
-                Se pasan el teléfono para revelar rol. Hablen, engañen, voten. El caos es parte del juego no sean niñas.
+                Hablen, engañen, voten. El caos es parte del juego no sean niñas.
               </p>
 
               <div className="hero-actions">
