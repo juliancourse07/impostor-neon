@@ -161,35 +161,6 @@ button:active:not(:disabled) {
   font-feature-settings: "tnum";
 }
 
-/* Existing demo styles (kept but toned down) */
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #59f3ffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
 /* ---------- MONO BANDIDO "club neon" mode ----------
    We’ll toggle this by adding/removing a class on <body>: body.mono-bandido
 */
@@ -248,16 +219,6 @@ body.mono-bandido button:hover:not(:disabled) {
   filter: saturate(1.08);
 }
 
-/* A tiny “pulse” vibe for urgent states (you already color urgent red in inline styles) */
-@keyframes pulseDanger {
-  0% {
-    box-shadow: 0 0 0 rgba(255, 75, 106, 0);
-  }
-  100% {
-    box-shadow: 0 0 28px rgba(255, 75, 106, 0.22);
-  }
-}
-
 /* ------------- CARD ENHANCEMENTS ------------- */
 .card {
   position: relative;
@@ -275,13 +236,9 @@ body.mono-bandido button:hover:not(:disabled) {
   pointer-events: none;
   opacity: 0.9;
   background:
-    /* sparkles layer 1 */
     radial-gradient(circle, rgba(89, 243, 255, 0.6) 1px, transparent 1.2px) 0 0 / 34px 34px,
-    /* sparkles layer 2 */
     radial-gradient(circle, rgba(180, 75, 255, 0.45) 1px, transparent 1.2px) 12px 14px / 44px 44px,
-    /* sparkles layer 3 */
     radial-gradient(circle, rgba(255, 79, 216, 0.35) 1px, transparent 1.2px) 18px 6px / 52px 52px,
-    /* diagonal hatch */
     repeating-linear-gradient(
       45deg,
       rgba(255, 255, 255, 0.08) 0,
@@ -411,7 +368,7 @@ body.mono-bandido button:hover:not(:disabled) {
   height: 10px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.10);
-  overflow: "hidden";
+  overflow: hidden;
 }
 
 .vote-progress-fill {
@@ -422,12 +379,18 @@ body.mono-bandido button:hover:not(:disabled) {
 }
 
 /* ------------- HERO + MODAL + RESPONSIVE ------------- */
+.hero-card {
+  text-align: left;
+}
+
 .hero {
   display: grid;
   grid-template-columns: 1.2fr 0.8fr;
   gap: 18px;
   align-items: center;
   text-align: left;
+  position: relative;
+  z-index: 2;
 }
 
 .hero-kicker {
@@ -438,11 +401,16 @@ body.mono-bandido button:hover:not(:disabled) {
   margin-bottom: 10px;
 }
 
+/* Título más "chill": gradiente + glow */
 .hero-title {
   font-size: 52px;
   line-height: 1.03;
   margin: 0 0 10px;
-  text-shadow: 0 0 26px rgba(89, 243, 255, 0.14);
+  background: linear-gradient(90deg, rgba(89, 243, 255, 0.95), rgba(180, 75, 255, 0.95), rgba(255, 79, 216, 0.95));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 26px rgba(89, 243, 255, 0.10);
 }
 
 .hero-subtitle {
@@ -459,14 +427,24 @@ body.mono-bandido button:hover:not(:disabled) {
   margin-bottom: 12px;
 }
 
+/* Botones base: centrados, sin cortarse feo */
 .btn-primary,
 .btn-ghost {
   border-radius: 14px;
   padding: 12px 14px;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  font-weight: 800;
+  font-weight: 900;
   color: inherit;
   cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .btn-primary {
@@ -557,6 +535,76 @@ body.mono-bandido button:hover:not(:disabled) {
   }
 }
 
+/* --- Mobile: everything visible, buttons compact, no scroll --- */
+@media (max-width: 520px) {
+  .card {
+    width: 100% !important;
+    padding: 14px !important;
+    overflow: hidden;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    text-align: left;
+  }
+
+  .hero-kicker {
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+
+  .hero-title {
+    font-size: 36px; /* un poco más grande pero con gradiente */
+    margin-bottom: 6px;
+  }
+
+  .hero-subtitle {
+    font-size: 13px;
+    line-height: 1.35;
+    margin-bottom: 10px;
+  }
+
+  .hero-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .btn-primary,
+  .btn-ghost {
+    width: 100%;
+    padding: 12px 12px;
+    min-height: 44px;
+  }
+
+  .hero-right {
+    min-height: 150px;
+  }
+
+  .hero-emblem svg {
+    width: 140px;
+    height: 140px;
+  }
+
+  .hero-marquee {
+    padding-top: 8px;
+    margin-top: 10px;
+  }
+
+  .hero-marquee-track span {
+    font-size: 11px;
+    padding: 5px 9px;
+  }
+
+  /* Setup screen: que no se "coma" los nombres */
+  .players-scroll {
+    max-height: min(46dvh, 340px);
+  }
+}
+
+/* ------------- MODAL + SETUP HELPERS ------------- */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -682,7 +730,7 @@ body.mono-bandido button:hover:not(:disabled) {
   cursor: pointer;
 }
 
-/* Mobile: allow setup card content to breathe and scroll */
+/* Setup card */
 .setup-card {
   width: 100%;
 }
@@ -702,110 +750,4 @@ body.mono-bandido button:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.12);
   border-radius: 999px;
   border: 2px solid rgba(0, 0, 0, 0.35);
-}
-
-/* --- FIX: hero visible on mobile --- */
-.hero-card {
-  text-align: left;
-}
-
-.hero {
-  position: relative;
-  z-index: 2;
-}
-
-/* --- Mobile fix: show EVERYTHING in Home without scrolling --- */
-@media (max-width: 520px) {
-  /* el card debe caber en pantalla (sin scroll) */
-  .card {
-    max-height: none;
-    overflow: hidden;
-    padding: 14px !important; /* compacta el card en móvil */
-  }
-
-  /* layout del hero en una columna */
-  .hero {
-    grid-template-columns: 1fr;
-    gap: 10px;
-    text-align: left;
-  }
-
-  /* compacta tipografías */
-  .hero-kicker {
-    font-size: 11px;
-    margin-bottom: 6px;
-  }
-
-  .hero-title {
-    font-size: 34px;
-    line-height: 1.05;
-    margin-bottom: 6px;
-  }
-
-  .hero-subtitle {
-    font-size: 13px;
-    line-height: 1.35;
-    margin-bottom: 10px;
-  }
-
-  /* botones siempre visibles y full width */
-  .hero-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
-
-  .btn-primary,
-  .btn-ghost {
-    width: 100%;
-    padding: 11px 12px;
-  }
-
-  /* emblema más pequeño y que no empuje la pantalla */
-  .hero-right {
-    min-height: 150px;
-  }
-
-  .hero-emblem svg {
-    width: 130px;
-    height: 130px;
-  }
-
-  /* banner/marquee más bajito, pero sigue moviéndose */
-  .hero-marquee {
-    padding-top: 8px;
-    margin-top: 10px;
-  }
-
-  .hero-marquee-track span {
-    font-size: 11px;
-    padding: 5px 9px;
-  }
-
-  /* mobile shell tweaks */
-  #root {
-    padding: 1rem;
-  }
-
-  .app-shell {
-    padding: 14px;
-    place-items: start center;
-    padding-top: 18px;
-  }
-
-  /* setup scroll remains */
-  .players-scroll {
-    max-height: 36dvh;
-  }
-
-  /* En móvil el card debe ser 100% del ancho disponible */
-  .card {
-    width: 100% !important;
-  }
-}
-
-/* make sure sparkles overlay never hides content */
-.screen {
-  z-index: 1;
 }
