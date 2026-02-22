@@ -111,16 +111,6 @@ body::after {
   place-items: center;
 }
 
-@media (max-width: 520px) {
-  #root {
-    padding: 12px;
-  }
-  .app-shell {
-    padding: 12px;
-    place-items: start center;
-  }
-}
-
 /* Inputs */
 input {
   outline: none;
@@ -614,24 +604,16 @@ body.mono-bandido::after {
 }
 
 /* =======================================================
-   MOBILE (HOME + SETUP)
+   MOBILE (SETUP) – keep names accessible
    ======================================================= */
 @media (max-width: 520px) {
-  /* reduce espacio general */
-  #root,
-  .app-shell {
+  #root {
     padding: 10px;
   }
 
-  /* card compacto */
-  .card {
-    width: 100% !important;
-    padding: 12px !important;
-  }
-
-  /* SETUP: scroll de la tarjeta completa (nombres siempre accesibles) */
+  /* Setup: scroll en la tarjeta */
   .setup-card {
-    max-height: calc(100dvh - 20px);
+    max-height: calc(100svh - 20px);
     overflow: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 16px;
@@ -644,27 +626,29 @@ body.mono-bandido::after {
   }
 }
 
-/* ========== MOBILE HOME: APP MODE (full screen, no dead space) ========== */
+/* =======================================================
+   MOBILE HOME – AUTO-FIT (no zoom, no scroll)
+   + mini MB badge + credit
+   ======================================================= */
 @media (max-width: 520px) {
-  /* el shell ocupa pantalla completa */
+  /* svh más estable en Android */
   .app-shell {
-    min-height: 100dvh;
+    min-height: 100svh;
     padding: 10px;
-    display: flex; /* en vez de grid */
+    display: flex;
     flex-direction: column;
     align-items: stretch;
   }
 
-  /* el card de HOME se vuelve "pantalla" */
+  /* Home card = pantalla */
   .card.hero-card {
     max-width: none !important; /* pisa maxWidth inline */
     width: 100% !important;
-    min-height: calc(100dvh - 20px) !important;
-    padding: 12px !important; /* pisa padding inline */
+    min-height: calc(100svh - 20px) !important;
+    padding: clamp(10px, 2.2vh, 14px) !important; /* pisa padding inline */
     display: flex;
   }
 
-  /* el contenido interno ocupa todo */
   .card.hero-card > .screen {
     width: 100%;
     display: flex;
@@ -674,38 +658,56 @@ body.mono-bandido::after {
     width: 100%;
     display: flex !important;
     flex-direction: column !important;
-    gap: 10px;
+    gap: clamp(8px, 1.6vh, 12px);
   }
 
-  /* ocultamos el emblema grande para que quepa */
+  /* oculta emblema grande */
   .card.hero-card .hero-right {
     display: none !important;
   }
 
-  .card.hero-card .hero-left {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding-bottom: 0;
-    position: static !important;
-  }
-
-  /* compactación */
   .card.hero-card .hero-kicker {
     font-size: 10px;
-    margin-bottom: 2px;
+    margin: 0;
   }
 
+  /* título + badge MB */
   .card.hero-card .hero-title {
-    font-size: 34px;
+    font-size: clamp(28px, 4.2vh, 36px);
+    line-height: 1.05;
     margin: 0;
+    position: relative;
+    padding-right: 54px;
+  }
+
+  .card.hero-card .hero-title::after {
+    content: "MB";
+    position: absolute;
+    right: 0;
+    top: 6px;
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-weight: 1000;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.92);
+    background:
+      radial-gradient(circle at 30% 30%, rgba(89, 243, 255, 0.35), transparent 55%),
+      radial-gradient(circle at 70% 70%, rgba(255, 79, 216, 0.25), transparent 55%),
+      rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow:
+      0 0 18px rgba(89, 243, 255, 0.16),
+      0 0 26px rgba(180, 75, 255, 0.10);
+    transform: translateY(-2px);
   }
 
   .card.hero-card .hero-subtitle {
     margin: 0;
-    font-size: 13px;
-    line-height: 1.3;
+    font-size: clamp(12px, 1.7vh, 13px);
+    line-height: 1.25;
 
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -713,32 +715,45 @@ body.mono-bandido::after {
     overflow: hidden;
   }
 
-  /* botones */
   .card.hero-card .hero-actions {
-    margin-top: 6px;
     display: grid;
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: clamp(8px, 1.5vh, 10px);
+    margin-top: clamp(6px, 1.2vh, 10px);
   }
 
   .card.hero-card .btn-primary,
   .card.hero-card .btn-ghost {
     width: 100%;
-    min-height: 42px;
+    min-height: clamp(38px, 5.2vh, 44px);
     padding: 10px 12px;
     font-size: 14px;
   }
 
-  /* marquee abajo */
+  /* marquee al fondo */
   .card.hero-card .hero-marquee {
     margin-top: auto;
     padding-top: 8px;
   }
 
-  /* credit: quita absolute para que no rompa layout */
+  /* credit sin absolute (estable) */
   .card.hero-card .hero-left::after {
+    content: "By Mr JC Bitch";
     position: static !important;
     display: block;
     margin-top: 8px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    opacity: 0.72;
+    color: rgba(255, 255, 255, 0.82);
+    text-transform: uppercase;
+  }
+
+  /* Universal: si el teléfono es "bajito", escondemos marquee para que no obligue zoom */
+  @media (max-width: 520px) and (max-height: 730px) {
+    .card.hero-card .hero-marquee {
+      display: none;
+    }
   }
 }
