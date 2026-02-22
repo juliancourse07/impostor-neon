@@ -614,8 +614,7 @@ body.mono-bandido::after {
 }
 
 /* =======================================================
-   MOBILE (HOME + SETUP) – NO SCROLL ON HOME, LESS SPACE
-   + mini logo + credit text
+   MOBILE (HOME + SETUP)
    ======================================================= */
 @media (max-width: 520px) {
   /* reduce espacio general */
@@ -630,115 +629,6 @@ body.mono-bandido::after {
     padding: 12px !important;
   }
 
-  /* HOME: sin scroll y sin logo grande para que quepa TODO */
-  .hero-card {
-    overflow: hidden;
-    max-height: none;
-  }
-
-  .hero {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  /* ocultamos el SVG grande */
-  .hero-right {
-    display: none !important;
-  }
-
-  .hero-kicker {
-    font-size: 10px;
-    margin-bottom: 6px;
-  }
-
-  /* mini "logo" al lado del título + título compacto */
-  .hero-title {
-    font-size: 34px;
-    margin-bottom: 6px;
-    position: relative;
-    padding-right: 54px; /* espacio para el badge */
-  }
-
-  .hero-title::after {
-    content: "MB";
-    position: absolute;
-    right: 0;
-    top: 6px;
-    width: 42px;
-    height: 42px;
-    border-radius: 999px;
-    display: grid;
-    place-items: center;
-    font-weight: 1000;
-    letter-spacing: 0.5px;
-    color: rgba(255, 255, 255, 0.92);
-    background:
-      radial-gradient(circle at 30% 30%, rgba(89, 243, 255, 0.35), transparent 55%),
-      radial-gradient(circle at 70% 70%, rgba(255, 79, 216, 0.25), transparent 55%),
-      rgba(0, 0, 0, 0.22);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    box-shadow:
-      0 0 18px rgba(89, 243, 255, 0.16),
-      0 0 26px rgba(180, 75, 255, 0.10);
-    transform: translateY(-2px);
-  }
-
-  .hero-subtitle {
-    font-size: 13px;
-    line-height: 1.35;
-    margin-bottom: 10px;
-
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .hero-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
-
-  .btn-primary,
-  .btn-ghost {
-    width: 100%;
-    min-height: 40px;
-    padding: 10px 12px;
-    font-size: 14px;
-  }
-
-  .hero-marquee {
-    padding-top: 8px;
-    margin-top: 10px;
-  }
-
-  .hero-marquee-track span {
-    font-size: 11px;
-    padding: 5px 9px;
-  }
-
-  /* Credit text */
-  .hero-left {
-    position: relative;
-    padding-bottom: 18px;
-  }
-
-  .hero-left::after {
-    content: "By Mr JC Bitch";
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 1.2px;
-    opacity: 0.72;
-    color: rgba(255, 255, 255, 0.82);
-    text-transform: uppercase;
-  }
-
   /* SETUP: scroll de la tarjeta completa (nombres siempre accesibles) */
   .setup-card {
     max-height: calc(100dvh - 20px);
@@ -751,5 +641,104 @@ body.mono-bandido::after {
     max-height: none;
     overflow: visible;
     padding-right: 0;
+  }
+}
+
+/* ========== MOBILE HOME: APP MODE (full screen, no dead space) ========== */
+@media (max-width: 520px) {
+  /* el shell ocupa pantalla completa */
+  .app-shell {
+    min-height: 100dvh;
+    padding: 10px;
+    display: flex; /* en vez de grid */
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* el card de HOME se vuelve "pantalla" */
+  .card.hero-card {
+    max-width: none !important; /* pisa maxWidth inline */
+    width: 100% !important;
+    min-height: calc(100dvh - 20px) !important;
+    padding: 12px !important; /* pisa padding inline */
+    display: flex;
+  }
+
+  /* el contenido interno ocupa todo */
+  .card.hero-card > .screen {
+    width: 100%;
+    display: flex;
+  }
+
+  .card.hero-card .hero {
+    width: 100%;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px;
+  }
+
+  /* ocultamos el emblema grande para que quepa */
+  .card.hero-card .hero-right {
+    display: none !important;
+  }
+
+  .card.hero-card .hero-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 0;
+    position: static !important;
+  }
+
+  /* compactación */
+  .card.hero-card .hero-kicker {
+    font-size: 10px;
+    margin-bottom: 2px;
+  }
+
+  .card.hero-card .hero-title {
+    font-size: 34px;
+    margin: 0;
+  }
+
+  .card.hero-card .hero-subtitle {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.3;
+
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* botones */
+  .card.hero-card .hero-actions {
+    margin-top: 6px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .card.hero-card .btn-primary,
+  .card.hero-card .btn-ghost {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  /* marquee abajo */
+  .card.hero-card .hero-marquee {
+    margin-top: auto;
+    padding-top: 8px;
+  }
+
+  /* credit: quita absolute para que no rompa layout */
+  .card.hero-card .hero-left::after {
+    position: static !important;
+    display: block;
+    margin-top: 8px;
   }
 }
