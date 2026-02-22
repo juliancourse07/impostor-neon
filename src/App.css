@@ -901,17 +901,15 @@ body.mono-bandido::after {
    Pegarlo al FINAL del archivo para que pise lo anterior
    ======================================================= */
 @media (max-width: 520px) {
-  /* Más espacio abajo para que NO tape botones */
   .card.hero-card .hero-left {
-    padding-bottom: 260px;
+    padding-bottom: 320px; /* más espacio para que no tape el BY */
   }
 
-  /* Halo detrás del mico (aura) */
   .card.hero-card .hero-left::before {
     content: "";
     position: absolute;
     left: 50%;
-    bottom: -28px; /* MÁS ABAJO */
+    bottom: -78px; /* AURA más abajo */
     transform: translateX(-50%);
     width: min(320px, 92vw);
     height: min(320px, 92vw);
@@ -928,7 +926,7 @@ body.mono-bandido::after {
   }
 
   .party-mascot {
-    bottom: -32px; /* MÁS ABAJO */
+    bottom: -88px; /* MICO más abajo */
     width: min(240px, 74vw);
     z-index: 20 !important;
     filter:
@@ -941,13 +939,15 @@ body.mono-bandido::after {
 
 @media (max-width: 520px) and (max-height: 730px) {
   .card.hero-card .hero-left {
-    padding-bottom: 230px;
+    padding-bottom: 285px;
   }
+
   .party-mascot {
     width: min(220px, 70vw);
-    bottom: -24px;
+    bottom: -68px;
   }
+
   .card.hero-card .hero-left::before {
-    bottom: -20px;
+    bottom: -62px;
   }
 }
