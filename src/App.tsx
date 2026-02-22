@@ -1068,8 +1068,7 @@ export default function App() {
               <div className="hero-kicker">PARTY • 1 DISPOSITIVO • NEÓN</div>
               <h1 className="hero-title">Impostor Neón</h1>
               <p className="hero-subtitle">
-                Hablen, engañen, voten. 
-                El caos es parte del juego no sean niñas.
+                Engañen el caos es parte del juego no sean niñas.
               </p>
 
               <div className="hero-actions">
