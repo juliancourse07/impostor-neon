@@ -95,7 +95,7 @@ body::after {
   }
 }
 
-/* Root sizing (keeps your layout) */
+/* Root sizing */
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -121,7 +121,7 @@ body::after {
   }
 }
 
-/* Give inputs a consistent neon look */
+/* Inputs */
 input {
   outline: none;
 }
@@ -131,7 +131,7 @@ input:focus {
   box-shadow: 0 0 0 3px rgba(89, 243, 255, 0.12);
 }
 
-/* Buttons: add glow on hover without breaking inline styles */
+/* Buttons: glow on hover */
 button {
   transition:
     transform 140ms ease,
@@ -155,7 +155,7 @@ button:active:not(:disabled) {
   background: rgba(89, 243, 255, 0.25);
 }
 
-/* ---------- MONO BANDIDO "club neon" mode ---------- */
+/* ---------- MONO BANDIDO mode ---------- */
 body.mono-bandido {
   background: radial-gradient(1100px 800px at 20% 18%, rgba(255, 79, 216, 0.18), transparent 60%),
     radial-gradient(900px 700px at 85% 25%, rgba(180, 75, 255, 0.18), transparent 55%),
@@ -201,7 +201,7 @@ body.mono-bandido::after {
   }
 }
 
-/* ------------- CARD ENHANCEMENTS ------------- */
+/* ------------- CARD ------------- */
 .card {
   position: relative;
   overflow: hidden;
@@ -232,7 +232,7 @@ body.mono-bandido::after {
   z-index: 0;
 }
 
-/* IMPORTANT: stop flicker/titileo (typing + timer) */
+/* Stop flicker/titileo (typing + timer) */
 .screen {
   position: relative;
   z-index: 1;
@@ -615,6 +615,7 @@ body.mono-bandido::after {
 
 /* =======================================================
    MOBILE (HOME + SETUP) – NO SCROLL ON HOME, LESS SPACE
+   + mini logo + credit text
    ======================================================= */
 @media (max-width: 520px) {
   /* reduce espacio general */
@@ -640,8 +641,9 @@ body.mono-bandido::after {
     gap: 10px;
   }
 
+  /* ocultamos el SVG grande */
   .hero-right {
-    display: none; /* clave para que no toque scrollear */
+    display: none !important;
   }
 
   .hero-kicker {
@@ -649,9 +651,36 @@ body.mono-bandido::after {
     margin-bottom: 6px;
   }
 
+  /* mini "logo" al lado del título + título compacto */
   .hero-title {
     font-size: 34px;
     margin-bottom: 6px;
+    position: relative;
+    padding-right: 54px; /* espacio para el badge */
+  }
+
+  .hero-title::after {
+    content: "MB";
+    position: absolute;
+    right: 0;
+    top: 6px;
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-weight: 1000;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.92);
+    background:
+      radial-gradient(circle at 30% 30%, rgba(89, 243, 255, 0.35), transparent 55%),
+      radial-gradient(circle at 70% 70%, rgba(255, 79, 216, 0.25), transparent 55%),
+      rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow:
+      0 0 18px rgba(89, 243, 255, 0.16),
+      0 0 26px rgba(180, 75, 255, 0.10);
+    transform: translateY(-2px);
   }
 
   .hero-subtitle {
@@ -688,6 +717,25 @@ body.mono-bandido::after {
   .hero-marquee-track span {
     font-size: 11px;
     padding: 5px 9px;
+  }
+
+  /* Credit text */
+  .hero-left {
+    position: relative;
+    padding-bottom: 18px;
+  }
+
+  .hero-left::after {
+    content: "By Mr JC Bitch";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    opacity: 0.72;
+    color: rgba(255, 255, 255, 0.82);
+    text-transform: uppercase;
   }
 
   /* SETUP: scroll de la tarjeta completa (nombres siempre accesibles) */
