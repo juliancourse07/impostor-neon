@@ -891,3 +891,16 @@ body.mono-bandido::after {
     }
   }
 }
+
+/* === FORCE mascot visible on mobile (override final) === */
+@media (max-width: 520px) {
+  .card.hero-card .hero-left {
+    z-index: 2;
+  }
+
+  .party-mascot {
+    z-index: 20 !important;
+    height: auto;
+    min-height: 140px; /* fallback si aspect-ratio falla */
+  }
+}
