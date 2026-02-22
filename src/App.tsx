@@ -533,7 +533,9 @@ export default function App() {
   }, []);
 
   // If game ends, show result first (so penalty shows), then allow "Ver ganador"
-  const [pendingGameOver, setPendingGameOver] = useState<"tripulacion" | "impostores" | null>(null);
+  const [pendingGameOver, setPendingGameOver] = useState<
+    "tripulacion" | "impostores" | null
+  >(null);
 
   // Voting (per-player)
   const [voteCounts, setVoteCounts] = useState<number[]>([]);
@@ -567,16 +569,18 @@ export default function App() {
 
   // Result
   const [ejected, setEjected] = useState<number | null>(null);
-  const [lastEjectedWasImpostor, setLastEjectedWasImpostor] = useState<boolean | null>(null);
+  const [lastEjectedWasImpostor, setLastEjectedWasImpostor] = useState<boolean | null>(
+    null,
+  );
 
   // Winner
   const [winner, setWinner] = useState<"tripulacion" | "impostores" | null>(null);
 
   // Discussion timer
   const DURATION_OPTIONS = [30, 60, 90, 120, 180] as const;
-  const [discussionDuration, setDiscussionDuration] = useState<(typeof DURATION_OPTIONS)[number]>(
-    90,
-  );
+  const [discussionDuration, setDiscussionDuration] = useState<
+    (typeof DURATION_OPTIONS)[number]
+  >(90);
   const [timeLeft, setTimeLeft] = useState<number>(90);
   const [timerRunning, setTimerRunning] = useState(false);
   const alarmedRef = useRef(false);
@@ -595,7 +599,10 @@ export default function App() {
     return c;
   }, [alive, impostors]);
 
-  const aliveCrewCount = useMemo(() => aliveCount - aliveImpostorsCount, [aliveCount, aliveImpostorsCount]);
+  const aliveCrewCount = useMemo(
+    () => aliveCount - aliveImpostorsCount,
+    [aliveCount, aliveImpostorsCount],
+  );
 
   const effectivePack: WordPackKey = monoBandidoEnabled ? "mono_bandido" : pack;
   const packInfo = WORD_PACKS[effectivePack];
@@ -1658,7 +1665,9 @@ export default function App() {
               <p style={{ margin: "0 0 10px", opacity: 0.9 }}>
                 Expulsado: <strong>{cleanPlayers[ejected]}</strong>
               </p>
-              <p style={{ margin: "0 0 14px", opacity: 0.85 }}>{lastEjectedWasImpostor ? "Era IMPOSTOR." : "No era impostor."}</p>
+              <p style={{ margin: "0 0 14px", opacity: 0.85 }}>
+                {lastEjectedWasImpostor ? "Era IMPOSTOR." : "No era impostor."}
+              </p>
             </>
           )}
 
@@ -1744,7 +1753,11 @@ export default function App() {
           >
             <div style={{ opacity: 0.8, fontSize: 13 }}>Ganador:</div>
             <div style={{ fontSize: 24, fontWeight: 900 }}>
-              {winner === "tripulacion" ? "TRIPULACIÓN" : winner === "impostores" ? "IMPOSTORES" : "-"}
+              {winner === "tripulacion"
+                ? "TRIPULACIÓN"
+                : winner === "impostores"
+                  ? "IMPOSTORES"
+                  : "-"}
             </div>
           </div>
 

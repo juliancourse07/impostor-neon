@@ -718,3 +718,59 @@ body.mono-bandido button:hover:not(:disabled) {
   border-radius: 999px;
   border: 2px solid rgba(0, 0, 0, 0.35);
 }
+
+/* --- FIX: hero visible on mobile --- */
+.hero-card {
+  text-align: left;
+}
+
+.hero {
+  position: relative;
+  z-index: 2;
+}
+
+@media (max-width: 720px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    text-align: left;
+  }
+
+  .hero-title {
+    font-size: 40px;
+  }
+
+  .hero-right {
+    min-height: 200px;
+  }
+
+  .hero-emblem svg {
+    width: 180px;
+    height: 180px;
+    display: block;
+    margin: 0 auto;
+  }
+
+  .hero-marquee {
+    margin-top: 14px;
+  }
+}
+
+/* make sure sparkles overlay never hides content */
+.card::before {
+  z-index: 0;
+}
+.screen {
+  z-index: 1;
+}
+
+@media (max-width: 520px) {
+  .app-shell {
+    padding-top: 18px;
+  }
+
+  /* En móvil el card debe ser 100% del ancho disponible */
+  .card {
+    width: 100% !important;
+  }
+}
