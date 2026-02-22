@@ -411,7 +411,7 @@ body.mono-bandido button:hover:not(:disabled) {
   height: 10px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.10);
-  overflow: hidden;
+  overflow: "hidden";
 }
 
 .vote-progress-fill {
@@ -714,34 +714,76 @@ body.mono-bandido button:hover:not(:disabled) {
   z-index: 2;
 }
 
-@media (max-width: 720px) {
+/* --- Mobile fix: show EVERYTHING in Home without scrolling --- */
+@media (max-width: 520px) {
+  /* el card debe caber en pantalla (sin scroll) */
+  .card {
+    max-height: none;
+    overflow: hidden;
+    padding: 14px !important; /* compacta el card en móvil */
+  }
+
+  /* layout del hero en una columna */
   .hero {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 10px;
     text-align: left;
   }
 
-  .hero-title {
-    font-size: 40px;
+  /* compacta tipografías */
+  .hero-kicker {
+    font-size: 11px;
+    margin-bottom: 6px;
   }
 
+  .hero-title {
+    font-size: 34px;
+    line-height: 1.05;
+    margin-bottom: 6px;
+  }
+
+  .hero-subtitle {
+    font-size: 13px;
+    line-height: 1.35;
+    margin-bottom: 10px;
+  }
+
+  /* botones siempre visibles y full width */
+  .hero-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .btn-primary,
+  .btn-ghost {
+    width: 100%;
+    padding: 11px 12px;
+  }
+
+  /* emblema más pequeño y que no empuje la pantalla */
   .hero-right {
-    min-height: 200px;
+    min-height: 150px;
   }
 
   .hero-emblem svg {
-    width: 180px;
-    height: 180px;
-    display: block;
-    margin: 0 auto;
+    width: 130px;
+    height: 130px;
   }
 
+  /* banner/marquee más bajito, pero sigue moviéndose */
   .hero-marquee {
-    margin-top: 14px;
+    padding-top: 8px;
+    margin-top: 10px;
   }
-}
 
-@media (max-width: 520px) {
+  .hero-marquee-track span {
+    font-size: 11px;
+    padding: 5px 9px;
+  }
+
+  /* mobile shell tweaks */
   #root {
     padding: 1rem;
   }
@@ -752,58 +794,14 @@ body.mono-bandido button:hover:not(:disabled) {
     padding-top: 18px;
   }
 
-  /* En móvil el card debe ser 100% del ancho disponible */
-  .card {
-    width: 100% !important;
-  }
-
+  /* setup scroll remains */
   .players-scroll {
     max-height: 36dvh;
   }
-}
 
-/* --- Mobile fix: ensure Home card can show buttons + emblem --- */
-@media (max-width: 520px) {
-  /* deja el card dentro de la pantalla y permite scroll si falta espacio */
+  /* En móvil el card debe ser 100% del ancho disponible */
   .card {
-    max-height: calc(100dvh - 32px);
-    overflow: auto;
-  }
-
-  /* reduce un poco el hero para que quepa todo */
-  .hero-title {
-    font-size: 38px;
-    line-height: 1.05;
-  }
-
-  .hero-subtitle {
-    font-size: 14px;
-    margin-bottom: 14px;
-  }
-
-  /* fuerza que los botones se vean bien y ocupen el ancho */
-  .hero-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .btn-primary,
-  .btn-ghost {
-    width: 100%;
-    justify-content: center;
-  }
-
-  /* emblema más pequeño para que no desplace todo */
-  .hero-emblem svg {
-    width: 150px;
-    height: 150px;
-  }
-
-  /* el marquee un poco más compacto */
-  .hero-marquee {
-    padding-top: 8px;
-    margin-top: 10px;
+    width: 100% !important;
   }
 }
 
