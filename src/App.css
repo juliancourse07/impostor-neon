@@ -589,7 +589,7 @@ body.mono-bandido::after {
 .players-scroll {
   max-height: min(42dvh, 320px);
   overflow: auto;
-  padding-right: 4px;
+  padding-right:  4px;
   margin-bottom: 4px;
 }
 
@@ -902,6 +902,52 @@ body.mono-bandido::after {
     }
     .card.hero-card .hero-left {
       padding-bottom: 0;
+    }
+  }
+}
+
+/* =======================================================
+   MOBILE HOME LAYOUT FIX (override)
+   - evita que el card se “encoga” y quede un hueco gigante
+   - baja el padding del mono para que no reviente el fit
+   ======================================================= */
+@media (max-width: 520px) {
+  /* fuerza layout a columna ocupando toda la altura disponible */
+  .card.hero-card {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .card.hero-card > .screen {
+    flex: 1;
+    display: flex;
+  }
+
+  .card.hero-card .hero {
+    flex: 1;
+  }
+
+  /* el padding-bottom de 240px a veces rompe en Android; lo bajamos */
+  .card.hero-card .hero-left {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 190px !important;
+  }
+
+  .party-mascot {
+    bottom: 10px !important;
+    width: min(210px, 68vw) !important;
+  }
+
+  /* en pantallas “bajitas” escondemos el mono y quitamos padding */
+  @media (max-width: 520px) and (max-height: 730px) {
+    .party-mascot {
+      display: none !important;
+    }
+    .card.hero-card .hero-left {
+      padding-bottom: 0 !important;
     }
   }
 }
