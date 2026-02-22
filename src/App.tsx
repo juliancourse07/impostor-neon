@@ -586,6 +586,52 @@ export default function App() {
   const alarmedRef = useRef(false);
   const lastTickedRef = useRef<number | null>(null);
 
+  // --- Home laugh sound (manual toggle; browsers require user interaction) ---
+  const laughRef = useRef<HTMLAudioElement | null>(null);
+  const [laughOn, setLaughOn] = useState(false);
+
+  useEffect(() => {
+    if (!laughRef.current) {
+      const a = new Audio(`${import.meta.env.BASE_URL}sensual-laugh.mp3`);
+      a.loop = true;
+      a.volume = 0.45;
+      laughRef.current = a;
+    }
+
+    return () => {
+      if (laughRef.current) {
+        laughRef.current.pause();
+        laughRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (screen !== "home" && laughRef.current) {
+      laughRef.current.pause();
+      laughRef.current.currentTime = 0;
+      setLaughOn(false);
+    }
+  }, [screen]);
+
+  const toggleLaugh = async () => {
+    const a = laughRef.current;
+    if (!a) return;
+
+    try {
+      if (laughOn) {
+        a.pause();
+        a.currentTime = 0;
+        setLaughOn(false);
+      } else {
+        await a.play();
+        setLaughOn(true);
+      }
+    } catch (err) {
+      console.warn("Audio blocked or failed to play", err);
+    }
+  };
+
   const cleanPlayers = useMemo(() => players.map((p) => p.trim()).filter(Boolean), [players]);
 
   const canStart =
@@ -1022,7 +1068,7 @@ export default function App() {
               <div className="hero-kicker">PARTY • 1 DISPOSITIVO • NEÓN</div>
               <h1 className="hero-title">Impostor Neón</h1>
               <p className="hero-subtitle">
-                Se pasan el teléfono para revelar rol. Hablen, engañen, voten. El caos es parte del juego.
+                Se pasan el teléfono para revelar rol. Hablen, engañen, voten. El caos es parte del juego no sean niñas.
               </p>
 
               <div className="hero-actions">
@@ -1030,8 +1076,11 @@ export default function App() {
                   Crear partida
                 </button>
                 <button className="btn-ghost" type="button" onClick={() => setHowToOpen(true)}>
-                  Cómo jugar
+                  Cómo jugar para que no te hagas preguntas como pendejo
                 </button>
+                  <button className="btn-ghost sound-toggle" type="button" onClick={toggleLaugh}>
+                 {laughOn ? "🔊 Risa ON" : "🔈 Risa OFF"}
+                  </button>
               </div>
 
               <div className="hero-marquee" aria-hidden="true">
